@@ -45,10 +45,10 @@ hdfs dfs -put ${data_root}/seq/ hdfs://xxx/xxx
 
 ## Known issue
 1. When building coco API to parse annotations, if Cython is not installed, ``` python setup.py build_ext --inplace ``` would failed with below error. So first install Cython.
-Traceback (most recent call last):
-  File "setup.py", line 2, in <module>
-    from Cython.Build import cythonize
-ImportError: No module named Cython.Build
+    Traceback (most recent call last):
+      File "setup.py", line 2, in <module>
+        from Cython.Build import cythonize
+    ImportError: No module named Cython.Build
   
  ```
  sudo pip install Cython
