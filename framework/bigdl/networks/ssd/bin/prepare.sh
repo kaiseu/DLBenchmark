@@ -2,7 +2,7 @@
 
 ## Prepare the dataset based on the configuration
 
-CURRENT_DIR=$( cd $(BASH_SOURCE[0]) && pwd )
+CURRENT_DIR=$( cd $( dirname ${BASH_SOURCE[0]} ) && pwd )
 
 LOCAL_CONF_FILE=${CURRENT_DIR}/../conf/localSetting.conf
 
@@ -24,43 +24,6 @@ EXT_PASCAL_SERVER="http://host.robots.ox.ac.uk/pascal/VOC/"
 EXT_COCO_SERVER="http://images.cocodataset.org/zips/"
 PASCAL_DATA_DIR=${TEMP_DATA_DIR}/data/pascal
 COCO_DATA_DIR=${TEMP_DATA_DIR}/data/coco
-
-if [[ ! -d ${PASCAL_DATA_DIR} ]]; then
-	mkdir -p ${PASCAL_DATA_DIR}
-fi
-
-if [[ ! -d ${COCO_DATA_DIR} ]]; then
-        mkdir -p ${COCO_DATA_DIR}
-fi
-
-if [[ x${DATA_SET} == "xvoc0712" ]]; then
-	## Download and Extract PASCAL VOC dataset
-	if [[ ! -d ${PASCAL_DATA_DIR}/VOCdevkit ]]; then
-		DOWNLOAD_PASCAL ${INT_PASCAL_SERVER} ${PASCAL_DATA_DIR} 0 ## From Internal Server
-		if [[ $? != 0 ]]; then
-			DOWNLOAD_PASCAL ${EXT_PASCAL_SERVER} ${PASCAL_DATA_DIR} 1 ## From External Server
-		fi
-	else
-		echo "Dataset ${DATA_SET} already exists in ${PASCAL_DATA_DIR}/VOCdevkit, will not download again."
-	fi
-elif [[ x${DATA_SET} == "xcoco" ]]; then
-	## Download and Extract COCO dataset
-	if [[ ! -d ${COCO_DATA_DIR}/images ]] || [[ ! -d ${COCO_DATA_DIR}/annotations ]]; then
-		DOWNLOAD_COCO ${INT_COCO_SERVER} ${COCO_DATA_DIR} 0 ## From Internal Server
-		if [[ $? != 0 ]]; then
-                        DOWNLOAD_COCO ${EXT_COCO_SERVER} ${COCO_DATA_DIR} 1 ## From External Server
-                fi
-	else
-                echo "Dataset ${DATA_SET} already exists in ${COCO_DATA_DIR}/images, will not download again."
-        fi
-	## Split Imageset and Annotations
-	COCO_SPLIT_ANNO ${TEMP_DATA_DIR} 
-else
-	echo "Dataset only can be voc0712 or coco currently! Exiting..."
-	exit -4
-fi
-
-
 
 
 function DOWNLOAD_PASCAL(){
@@ -150,7 +113,7 @@ function DOWNLOAD_COCO(){
 function COCO_SPLIT_ANNO(){
 ## Split Imageset and Annotations
 	if [[ "$#" -ne 1 ]] || ! [ -d "$1" ]; then
-		echo "Uage: $0 DIRECTORY" > &2
+		echo "Uage: $0 DIRECTORY"
 		exit -5
 	fi
 	DATA_DIR=$1 ## coco dataset path
@@ -165,3 +128,39 @@ function COCO_SPLIT_ANNO(){
 		exit -6
 	fi
 }
+
+
+if [[ ! -d ${PASCAL_DATA_DIR} ]]; then
+        mkdir -p ${PASCAL_DATA_DIR}
+fi
+
+if [[ ! -d ${COCO_DATA_DIR} ]]; then
+        mkdir -p ${COCO_DATA_DIR}
+fi
+
+if [[ x${DATA_SET} == "xvoc0712" ]]; then
+        ## Download and Extract PASCAL VOC dataset
+        if [[ ! -d ${PASCAL_DATA_DIR}/VOCdevkit ]]; then
+                DOWNLOAD_PASCAL ${INT_PASCAL_SERVER} ${PASCAL_DATA_DIR} 0 ## From Internal Server
+                if [[ $? != 0 ]]; then
+                        DOWNLOAD_PASCAL ${EXT_PASCAL_SERVER} ${PASCAL_DATA_DIR} 1 ## From External Server
+                fi
+        else
+                echo "Dataset ${DATA_SET} already exists in ${PASCAL_DATA_DIR}/VOCdevkit, will not download again."
+        fi
+elif [[ x${DATA_SET} == "xcoco" ]]; then
+        ## Download and Extract COCO dataset
+        if [[ ! -d ${COCO_DATA_DIR}/images ]] || [[ ! -d ${COCO_DATA_DIR}/annotations ]]; then
+                DOWNLOAD_COCO ${INT_COCO_SERVER} ${COCO_DATA_DIR} 0 ## From Internal Server
+                if [[ $? != 0 ]]; then
+                        DOWNLOAD_COCO ${EXT_COCO_SERVER} ${COCO_DATA_DIR} 1 ## From External Server
+                fi
+        else
+                echo "Dataset ${DATA_SET} already exists in ${COCO_DATA_DIR}/images, will not download again."
+        fi
+        ## Split Imageset and Annotations
+        COCO_SPLIT_ANNO ${TEMP_DATA_DIR}
+else
+        echo "Dataset only can be voc0712 or coco currently! Exiting..."
+        exit -4
+fi
