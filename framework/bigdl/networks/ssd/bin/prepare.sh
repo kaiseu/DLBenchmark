@@ -129,8 +129,12 @@ function DOWNLOAD_COCO(){
 		unzip "*.zip" >> /dev/null 2>&1
 		echo "Extract Done!"
                 echo "==============================================================================================="
+		mkdir images/
+		mv train2014/ val2014/ test2014/ test2015 images/
+		echo "Images have been moved to: ${DEST_DIR}/images"
 		mv instances_minival2014.json annotations/
 		mv instances_valminusminival2014.json annotations/
+		echo "Annotations have been moved to: ${DEST_DIR}/annotations"
                 cd -
         else
                 echo "Can not connect to Server: ${SERVER}, please check and try again. Exiting..."
