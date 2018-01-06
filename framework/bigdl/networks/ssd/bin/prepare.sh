@@ -157,7 +157,11 @@ elif [[ x${DATA_SET} == "xcoco" ]]; then
                 echo "Dataset ${DATA_SET} already exists in ${COCO_DATA_DIR}/images, will not download again."
         fi
         ## Split Imageset and Annotations
-        COCO_SPLIT_ANNO ${TEMP_DATA_DIR}
+	if [[ ! -d ${COCO_DATA_DIR}/Annotations ]]; then
+	        COCO_SPLIT_ANNO ${TEMP_DATA_DIR}
+	else
+		echo "Splited ${DATA_SET} annotations already exists in ${COCO_DATA_DIR}/Annotations, will not split again."
+	fi
 else
         echo "Dataset only can be voc0712 or coco currently! Exiting..."
         exit -4
