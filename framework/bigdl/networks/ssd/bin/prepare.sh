@@ -51,9 +51,9 @@ function DOWNLOAD_PASCAL(){
 		echo "==============================================================================================="
 		echo "Extracting the tar files..."
 		cat *.tar | tar -xvf - -i >> /dev/null 2>&1
+                cd - >> /dev/null 2>&1
                 echo "Extract Done!"
                 echo "==============================================================================================="
-                cd - >> /dev/null 2>&1
 	else
 		echo "Can not connect to Server: ${SERVER}, please check and try again. Exiting..."
 		exit -3
