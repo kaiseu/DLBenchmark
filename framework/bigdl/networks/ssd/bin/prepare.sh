@@ -18,8 +18,8 @@ else
 fi
 
 ## Whether to download Source dataset images?
-INT_PASCAL_SERVER="bdpa-gateway.sh.intel.com:8088/dataset/PASCAL"
-INT_COCO_SERVER="bdpa-gateway.sh.intel.com:8088/dataset/COCO"
+INT_PASCAL_SERVER="bdpa-gateway.sh.intel.com:8088/dataset/PASCAL/"
+INT_COCO_SERVER="bdpa-gateway.sh.intel.com:8088/dataset/COCO/"
 EXT_PASCAL_SERVER="http://host.robots.ox.ac.uk/pascal/VOC/"
 EXT_COCO_SERVER="http://images.cocodataset.org/zips/"
 PASCAL_DATA_DIR=${TEMP_DATA_DIR}/data/pascal
@@ -31,7 +31,7 @@ function DOWNLOAD_PASCAL(){
 	DEST_DIR=$2 ## the dir to save the downloaded files
 	IS_INT=$3 ## Flag, is the server Internal or External? 0 represents Internal, 1 represents External. 
 	TIMEOUT="5"
-	RET_CODE=`curl -I -s --connect-timeout ${TIMEOUT} ${SERVER} -w %{http_code} | tail -n1`
+	RET_CODE=`curl -L -I -s --connect-timeout ${TIMEOUT} ${SERVER} -w %{http_code} | tail -n1`
 	if [[ x${RET_CODE} == "x200" ]]; then
 		cd ${DEST_DIR}
 		echo "==============================================================================================="
@@ -66,7 +66,7 @@ function DOWNLOAD_COCO(){
         DEST_DIR=$2 ## the dir to save the downloaded files
         IS_INT=$3 ## Flag, is the server Internal or External? 0 represents Internal, 1 represents External.
         TIMEOUT="5"
-        RET_CODE=`curl -I -s --connect-timeout ${TIMEOUT} ${SERVER} -w %{http_code} | tail -n1`
+        RET_CODE=`curl -L -I -s --connect-timeout ${TIMEOUT} ${SERVER} -w %{http_code} | tail -n1`
 	if [[ x${RET_CODE} == "x200" ]]; then
                 cd ${DEST_DIR}
                 echo "==============================================================================================="
