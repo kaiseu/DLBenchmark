@@ -130,17 +130,12 @@ function COCO_SPLIT_ANNO(){
 }
 
 
-if [[ ! -d ${PASCAL_DATA_DIR} ]]; then
-        mkdir -p ${PASCAL_DATA_DIR}
-fi
-
-if [[ ! -d ${COCO_DATA_DIR} ]]; then
-        mkdir -p ${COCO_DATA_DIR}
-fi
-
 if [[ x${DATA_SET} == "xvoc0712" ]]; then
         ## Download and Extract PASCAL VOC dataset
         if [[ ! -d ${PASCAL_DATA_DIR}/VOCdevkit ]]; then
+		if [[ ! -d ${PASCAL_DATA_DIR} ]]; then
+  		      mkdir -p ${PASCAL_DATA_DIR}
+		fi
                 DOWNLOAD_PASCAL ${INT_PASCAL_SERVER} ${PASCAL_DATA_DIR} 0 ## From Internal Server
                 if [[ $? != 0 ]]; then
                         DOWNLOAD_PASCAL ${EXT_PASCAL_SERVER} ${PASCAL_DATA_DIR} 1 ## From External Server
@@ -151,6 +146,9 @@ if [[ x${DATA_SET} == "xvoc0712" ]]; then
 elif [[ x${DATA_SET} == "xcoco" ]]; then
         ## Download and Extract COCO dataset
         if [[ ! -d ${COCO_DATA_DIR}/images ]] || [[ ! -d ${COCO_DATA_DIR}/annotations ]]; then
+		if [[ ! -d ${COCO_DATA_DIR} ]]; then
+			mkdir -p ${COCO_DATA_DIR}
+		fi
                 DOWNLOAD_COCO ${INT_COCO_SERVER} ${COCO_DATA_DIR} 0 ## From Internal Server
                 if [[ $? != 0 ]]; then
                         DOWNLOAD_COCO ${EXT_COCO_SERVER} ${COCO_DATA_DIR} 1 ## From External Server
