@@ -53,7 +53,7 @@ function DOWNLOAD_PASCAL(){
 		cat *.tar | tar -xvf - -i >> /dev/null 2>&1
                 echo "Extract Done!"
                 echo "==============================================================================================="
-                cd -
+                cd - >> /dev/null 2>&1
 	else
 		echo "Can not connect to Server: ${SERVER}, please check and try again. Exiting..."
 		exit -3
@@ -102,7 +102,7 @@ function DOWNLOAD_COCO(){
 		mv instances_minival2014.json annotations/
 		mv instances_valminusminival2014.json annotations/
 		echo "Annotations have been moved to: ${DEST_DIR}/annotations"
-                cd -
+                cd - >> /dev/null 2>&1
         else
                 echo "Can not connect to Server: ${SERVER}, please check and try again. Exiting..."
                 exit -3
