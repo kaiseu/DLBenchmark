@@ -20,11 +20,47 @@ fi
 ## Whether to download Source dataset images?
 INT_PASCAL_SERVER="bdpa-gateway.sh.intel.com:8088/dlbenchmark/dataset/PASCAL/"
 INT_COCO_SERVER="bdpa-gateway.sh.intel.com:8088/dlbenchmark/dataset/COCO/"
+INT_BASE_MODEL_SERVER="bdpa-gateway.sh.intel.com:8088/dlbenchmark/models/ssd/"
 EXT_PASCAL_SERVER="http://host.robots.ox.ac.uk/pascal/VOC/"
 EXT_COCO_SERVER="http://images.cocodataset.org/zips/"
 PASCAL_DATA_DIR=${TEMP_DATA_DIR}/data/pascal
 COCO_DATA_DIR=${TEMP_DATA_DIR}/data/coco
 
+function DOWNLOAD_BASE_MODEL(){
+	MODEL_NAME=$1
+	RESOLUTION=$2
+	if [[ "$#" -ne 2 ]]; then
+                echo "Usage: $0 BASE_MODEL_NAME IMAGE_RESOLUTION"
+                exit -6
+        fi
+	
+	if [[ x${MODEL_NAME} == "xvgg16" ]]; then
+		if [[ ! -d ${TEMP_DATA_DIR}/models/ssd/VGGNet/VOC0712/SSD_${RESOLUTION}x${RESOLUTION} ]]; then
+			mkdir -p ${TEMP_DATA_DIR}/models/ssd/
+			RET_CODE=`curl -L -I -s --connect-timeout ${TIMEOUT} ${INT_BASE_MODEL_SERVER} -w %{http_code} | tail -n1`
+			if [[ x${RET_CODE} == "x200" ]]; then
+				echo "Begin to download base model: ${MODEL_NAME} from Internal server: ${INT_BASE_MODEL_SERVER} ..."
+				wget -r -nH --cut-dirs=2 --no-parent --reject="index.html*" ${INT_BASE_MODEL_SERVER}/VGGNet -P ${TEMP_DATA_DIR}/models/ssd/
+			else
+				RET_CODE=`curl -L -I -s --connect-timeout ${TIMEOUT} ${EXT_BASE_MODEL_SERVER} -w %{http_code} | tail -n1`
+				if [[ x${RET_CODE} == "x200" ]]; then
+					echo "Begin to download base model: ${MODEL_NAME} from External server: ${EXT_BASE_MODEL_SERVER} ..."
+				###External server
+				else
+					echo "Can not connect to Server: ${EXT_BASE_MODEL_SERVER}, please check and try again. Exiting..."
+					exit -7
+				fi
+			fi
+			echo "Download Done!"
+			echo "Base model have been saved to: ${TEMP_DATA_DIR}/models/ssd/VGGNet/VOC0712/SSD_${RESOLUTION}x${RESOLUTION}"
+		else
+			echo "Base model: {MODEL_NAME} already exists in ${TEMP_DATA_DIR}/models/ssd/VGGNet/VOC0712/SSD_${RESOLUTION}x${RESOLUTION}, will not download again!"
+		fi
+	elif [[ x${MODEL_NAME} == "alexnet" ]]; then
+
+	fi
+	
+}
 
 function DOWNLOAD_PASCAL(){
 	SERVER=$1 ## the server from where to download
@@ -113,7 +149,7 @@ function DOWNLOAD_COCO(){
 function COCO_SPLIT_ANNO(){
 ## Split Imageset and Annotations
 	if [[ "$#" -ne 1 ]] || ! [ -d "$1" ]; then
-		echo "Uage: $0 DIRECTORY"
+		echo "Usage: $0 DIRECTORY"
 		exit -5
 	fi
 	DATA_DIR=$1 ## coco dataset path
