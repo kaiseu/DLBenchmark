@@ -18,8 +18,8 @@ else
 fi
 
 ## Whether to download Source dataset images?
-INT_PASCAL_SERVER="bdpa-gateway.sh.intel.com:8088/dataset/PASCAL/"
-INT_COCO_SERVER="bdpa-gateway.sh.intel.com:8088/dataset/COCO/"
+INT_PASCAL_SERVER="bdpa-gateway.sh.intel.com:8088/dlbenchmark/dataset/PASCAL/"
+INT_COCO_SERVER="bdpa-gateway.sh.intel.com:8088/dlbenchmark/dataset/COCO/"
 EXT_PASCAL_SERVER="http://host.robots.ox.ac.uk/pascal/VOC/"
 EXT_COCO_SERVER="http://images.cocodataset.org/zips/"
 PASCAL_DATA_DIR=${TEMP_DATA_DIR}/data/pascal
