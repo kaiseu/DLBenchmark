@@ -20,40 +20,43 @@ fi
 ## Whether to download Source dataset images?
 INT_PASCAL_SERVER="bdpa-gateway.sh.intel.com:8088/dlbenchmark/dataset/PASCAL/"
 INT_COCO_SERVER="bdpa-gateway.sh.intel.com:8088/dlbenchmark/dataset/COCO/"
-INT_BASE_MODEL_SERVER="bdpa-gateway.sh.intel.com:8088/dlbenchmark/models/ssd3/"
+INT_BASE_MODEL_SERVER="bdpa-gateway.sh.intel.com:8088/dlbenchmark/models/ssd2/"
 EXT_PASCAL_SERVER="http://host.robots.ox.ac.uk/pascal/VOC/"
 EXT_COCO_SERVER="http://images.cocodataset.org/zips/"
 EXT_VGG_BASE_MODEL_300="https://doc-0o-30-docs.googleusercontent.com/docs/securesc/ha0ro937gcuc7l7deffksulhg5h7mbp1/4vekjv3i84tfbagshmm8fhibbemagvbk/1515369600000/09260862254863227534/*/0BzKzrI_SkD1_WVVTSmQxU0dVRzA?e=download"
-EXT_VGG_BASE_MODEL_512="https://doc-0s-30-docs.googleusercontent.com/docs/securesc/ha0ro937gcuc7l7deffksulhg5h7mbp1/821ubgh92t2alum93vcg4chrvr5bp177/1515369600000/09260862254863227534/*/0BzKzrI_SkD1_ZDIxVHBEcUNBb2s?e=download"
+EXT_VGG_BASE_MODEL_512="https://doc-0s-30-docs.googleusercontent.com/docs/securesc/ha0ro937gcuc7l7deffksulhg5h7mbp1/k0ivavusfo30kuo3un6ee1bjutqu8bnb/1515405600000/09260862254863227534/*/0BzKzrI_SkD1_ZDIxVHBEcUNBb2s?e=download"
+EXT_ALEXNET_BASE_MODEL_300="https://storage.googleapis.com/drive-bulk-export-anonymous/20180108T064845Z/4133399871716478688/6e39bd56-ef20-422d-b7a6-ec6eed6ed5a4/1/a9eb60b0-f7f2-41a5-bc3f-a825ae0e6f16?authuser"
 PASCAL_DATA_DIR=${TEMP_DATA_DIR}/data/pascal
 COCO_DATA_DIR=${TEMP_DATA_DIR}/data/coco
 
 function DOWNLOAD_BASE_MODEL(){
 	MODEL_NAME=$1
 	RESOLUTION=$2
+	DATASET=$3
 	TIMEOUT="5"
-	if [[ "$#" -ne 2 ]]; then
-                echo "Usage: $0 BASE_MODEL_NAME IMAGE_RESOLUTION"
+	if [[ "$#" -ne 3 ]]; then
+                echo "Usage: $0 BASE_MODEL_NAME IMAGE_RESOLUTION DATASET"
                 exit -6
         fi
 	
 	if [[ x${MODEL_NAME} == "xvgg16" ]]; then
-		if [[ ! -f ${TEMP_DATA_DIR}/models/ssd/VGGNet/VOC0712/SSD_${RESOLUTION}x${RESOLUTION}/VGG_VOC0712_SSD_${RESOLUTION}x${RESOLUTION}_iter_120000.caffemodel ]] || [[ ! -f ${TEMP_DATA_DIR}/models/ssd/VGGNet/VOC0712/SSD_${RESOLUTION}x${RESOLUTION}/test.prototxt ]]; then
+		if [[ ! -f ${TEMP_DATA_DIR}/models/ssd/VGGNet/${DATASET}/SSD_${RESOLUTION}x${RESOLUTION}/VGG_VOC0712_SSD_${RESOLUTION}x${RESOLUTION}_iter_120000.caffemodel ]] || [[ ! -f ${TEMP_DATA_DIR}/models/ssd/VGGNet/${DATASET}/SSD_${RESOLUTION}x${RESOLUTION}/test.prototxt ]]; then
 			## Downlaod from Internal Server
-			RET_CODE=`curl -L -I -s --connect-timeout ${TIMEOUT} ${INT_BASE_MODEL_SERVER} -w %{http_code} | tail -n1`
+			INT_VGG_BASE_MODEL="${INT_BASE_MODEL_SERVER}/VGGNet/${DATASET}/SSD_${RESOLUTION}x${RESOLUTION}"
+			RET_CODE=`curl -L -I -s --connect-timeout ${TIMEOUT} ${INT_VGG_BASE_MODEL} -w %{http_code} | tail -n1`
 			if [[ x${RET_CODE} == "x200" ]]; then
-				echo "Begin to download base model: ${MODEL_NAME} with resolution: ${RESOLUTION}x${RESOLUTION} from Internal server: ${INT_BASE_MODEL_SERVER} ..."
-				if [[ ! -d ${TEMP_DATA_DIR}/models/ssd/VGGNet/VOC0712/SSD_${RESOLUTION}x${RESOLUTION} ]]; then
-					mkdir -p ${TEMP_DATA_DIR}/models/ssd/VGGNet/VOC0712/SSD_${RESOLUTION}x${RESOLUTION}
+				echo "Begin to download base model: ${MODEL_NAME} with resolution: ${RESOLUTION}x${RESOLUTION} from Internal server: ${INT_VGG_BASE_MODEL} ..."
+				if [[ ! -d ${TEMP_DATA_DIR}/models/ssd/VGGNet/${DATASET}/SSD_${RESOLUTION}x${RESOLUTION} ]]; then
+					mkdir -p ${TEMP_DATA_DIR}/models/ssd/VGGNet/${DATASET}/SSD_${RESOLUTION}x${RESOLUTION}
 				fi
-				cd ${TEMP_DATA_DIR}/models/ssd/VGGNet/VOC0712/
-				curl -O ${INT_BASE_MODEL_SERVER}/VGGNet/VOC0712/classname.txt
+				cd ${TEMP_DATA_DIR}/models/ssd/VGGNet/${DATASET}/
+				curl -O ${INT_BASE_MODEL_SERVER}/VGGNet/${DATASET}/classname.txt
 				cd - >> /dev/null 2>&1
-				cd ${TEMP_DATA_DIR}/models/ssd/VGGNet/VOC0712/SSD_${RESOLUTION}x${RESOLUTION}/
-				curl -OO ${INT_BASE_MODEL_SERVER}/VGGNet/VOC0712/SSD_${RESOLUTION}x${RESOLUTION}/{test.prototxt,VGG_VOC0712_SSD_${RESOLUTION}x${RESOLUTION}_iter_120000.caffemodel}
+				cd ${TEMP_DATA_DIR}/models/ssd/VGGNet/${DATASET}/SSD_${RESOLUTION}x${RESOLUTION}/
+				curl -OO ${INT_BASE_MODEL_SERVER}/VGGNet/${DATASET}/SSD_${RESOLUTION}x${RESOLUTION}/{test.prototxt,VGG_VOC0712_SSD_${RESOLUTION}x${RESOLUTION}_iter_120000.caffemodel}
 				cd - >> /dev/null 2>&1
 			else
-				## Downlaod from External Server
+				## Downlaod from External Server, Only support dataset VOC0712
 				eval EXT_VGG_BASE_MODEL="\${EXT_VGG_BASE_MODEL_${RESOLUTION}}"
 				curl -L -I -s --connect-timeout ${TIMEOUT} ${EXT_VGG_BASE_MODEL} -w %{http_code} | grep "HTTP/1.1 200" >> /dev/null 2>&1
 				if [[ $? ]]; then
@@ -73,13 +76,57 @@ function DOWNLOAD_BASE_MODEL(){
 			echo "Download Done!"
 			echo "Base model have been saved to: ${TEMP_DATA_DIR}/models/ssd/VGGNet/VOC0712/SSD_${RESOLUTION}x${RESOLUTION}"
 		else
-			echo "Base model: {MODEL_NAME} already exists in ${TEMP_DATA_DIR}/models/ssd/VGGNet/VOC0712/SSD_${RESOLUTION}x${RESOLUTION}, will not download again!"
+			echo "Base model: ${MODEL_NAME} already exists in ${TEMP_DATA_DIR}/models/ssd/VGGNet/VOC0712/SSD_${RESOLUTION}x${RESOLUTION}, will not download again!"
 		fi
-	elif [[ x${MODEL_NAME} == "alexnet" ]]; then
-	echo "alex"
-
+	elif [[ x${MODEL_NAME} == "xalexnet" ]]; then
+		if [[ ! -f ${TEMP_DATA_DIR}/models/ssd/AlexNet/${DATASET}/SSD_${RESOLUTION}x${RESOLUTION}/ALEXNET_JDLOGO_V4_SSD_${RESOLUTION}x${RESOLUTION}_iter_920.caffemodel ]] || [[ ! -f ${TEMP_DATA_DIR}/models/ssd/AlexNet/${DATASET}/SSD_${RESOLUTION}x${RESOLUTION}/deploy.prototxt ]] || [[ ! -f ${TEMP_DATA_DIR}/models/ssd/AlexNet/${DATASET}/SSD_${RESOLUTION}x${RESOLUTION}/classname.txt ]]; then
+			if [[ ! x${RESOLUTION} == "x300" ]]; then
+                                        echo "Only support ${MODEL_NAME} with resolution: 300x300 currently! Exiting..."
+                                        exit -8
+                        fi
+			## Downlaod from Internal Server
+			INT_ALEX_BASE_MODEL=${INT_BASE_MODEL_SERVER}/AlexNet/${DATASET}/SSD_${RESOLUTION}x${RESOLUTION}
+			RET_CODE=`curl -L -I -s --connect-timeout ${TIMEOUT} ${INT_ALEX_BASE_MODEL} -w %{http_code} | tail -n1`
+			if [[ x${RET_CODE} == "x200" ]]; then
+				echo "Begin to download base model: ${MODEL_NAME} with resolution: ${RESOLUTION}x${RESOLUTION} from Internal server: ${INT_ALEX_BASE_MODEL} ..."
+				ALEX_BASE_MODEL_DIR=${TEMP_DATA_DIR}/models/ssd/AlexNet/${DATASET}/SSD_${RESOLUTION}x${RESOLUTION}
+				if [[ ! -d ${ALEX_BASE_MODEL_DIR} ]]; then
+					mkdir -p ${ALEX_BASE_MODEL_DIR}
+				fi
+				cd ${ALEX_BASE_MODEL_DIR}
+				curl -OOO ${INT_ALEX_BASE_MODEL}/{ALEXNET_JDLOGO_V4_SSD_300x300_iter_920.caffemodel,deploy.prototxt,classname.txt}
+				cd - >> /dev/null 2>&1
+			else
+				## Downlaod from External Server
+				eval EXT_ALEXNET_BASE_MODEL="\${EXT_ALEXNET_BASE_MODEL_${RESOLUTION}}"
+				echo ${EXT_ALEXNET_BASE_MODEL}
+				echo "curl -L -I -s --connect-timeout ${TIMEOUT} ${EXT_ALEXNET_BASE_MODEL} -w %{http_code} | grep "HTTP/1.1 200" >> /dev/null 2>&1"
+				curl -L -I -s --connect-timeout ${TIMEOUT} ${EXT_ALEXNET_BASE_MODEL} -w %{http_code} | grep "HTTP/1.1 200" >> /dev/null 2>&1
+				if [[ $? ]]; then
+					echo "Begin to download base model: ${MODEL_NAME} with resolution: ${RESOLUTION}x${RESOLUTION} from External server: ${EXT_ALEXNET_BASE_MODEL} ..."
+					if [[ ! -d ${TEMP_DATA_DIR}/models/ssd/AlexNet/${DATASET}/SSD_${RESOLUTION}x${RESOLUTION} ]]; then
+						mkdir -p ${TEMP_DATA_DIR}/models/ssd/AlexNet/${DATASET}/SSD_${RESOLUTION}x${RESOLUTION}
+					fi
+					wget ${EXT_ALEXNET_BASE_MODEL} -O ${TEMP_DATA_DIR}/models/ssd/AlexNet/${DATASET}/SSD_${RESOLUTION}x${RESOLUTION}/models_ALEXNet_${DATASET}_SSD_${RESOLUTION}x${RESOLUTION}.zip
+					cd ${TEMP_DATA_DIR}/models/ssd/AlexNet/${DATASET}/SSD_${RESOLUTION}x${RESOLUTION}
+					unzip models_ALEXNet_${DATASET}_SSD_${RESOLUTION}x${RESOLUTION}.zip >> /dev/null 2>&1
+					mv ./ssd_alexnet/* ./
+					rm -fr ./ssd_alexnet/
+				else
+					echo "Can not connect to Server: ${EXT_ALEXNET_BASE_MODEL}, download base model: ${MODEL_NAME} with resolution: ${RESOLUTION}x${RESOLUTION} failed! Please check and try again. Exiting..."
+					exit -9
+				fi
+			fi
+			echo "Download Done!"
+			echo "Base model have been saved to: ${TEMP_DATA_DIR}/models/ssd/AlexNet/${DATASET}/SSD_${RESOLUTION}x${RESOLUTION}"
+		else
+			echo ""Base model: ${MODEL_NAME} already exists in ${TEMP_DATA_DIR}/models/ssd/AlexNet/${DATASET}/SSD_${RESOLUTION}x${RESOLUTION}, will not download again!""
+				
+		fi			
+	else
+		echo "Base model only support vgg16 or alexnet currently, exiting..."
+		exit 10
 	fi
-	
 }
 
 function DOWNLOAD_PASCAL(){
@@ -224,4 +271,4 @@ function DOWNLOAD_DATASET(){
 	fi
 }
 
-DOWNLOAD_BASE_MODEL vgg16 512
+DOWNLOAD_BASE_MODEL vgg16 512  VOC0712
