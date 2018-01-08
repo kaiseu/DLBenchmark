@@ -20,34 +20,53 @@ fi
 ## Whether to download Source dataset images?
 INT_PASCAL_SERVER="bdpa-gateway.sh.intel.com:8088/dlbenchmark/dataset/PASCAL/"
 INT_COCO_SERVER="bdpa-gateway.sh.intel.com:8088/dlbenchmark/dataset/COCO/"
-INT_BASE_MODEL_SERVER="bdpa-gateway.sh.intel.com:8088/dlbenchmark/models/ssd/"
+INT_BASE_MODEL_SERVER="bdpa-gateway.sh.intel.com:8088/dlbenchmark/models/ssd3/"
 EXT_PASCAL_SERVER="http://host.robots.ox.ac.uk/pascal/VOC/"
 EXT_COCO_SERVER="http://images.cocodataset.org/zips/"
+EXT_VGG_BASE_MODEL_300="https://doc-0o-30-docs.googleusercontent.com/docs/securesc/ha0ro937gcuc7l7deffksulhg5h7mbp1/4vekjv3i84tfbagshmm8fhibbemagvbk/1515369600000/09260862254863227534/*/0BzKzrI_SkD1_WVVTSmQxU0dVRzA?e=download"
+EXT_VGG_BASE_MODEL_512="https://doc-0s-30-docs.googleusercontent.com/docs/securesc/ha0ro937gcuc7l7deffksulhg5h7mbp1/821ubgh92t2alum93vcg4chrvr5bp177/1515369600000/09260862254863227534/*/0BzKzrI_SkD1_ZDIxVHBEcUNBb2s?e=download"
 PASCAL_DATA_DIR=${TEMP_DATA_DIR}/data/pascal
 COCO_DATA_DIR=${TEMP_DATA_DIR}/data/coco
 
 function DOWNLOAD_BASE_MODEL(){
 	MODEL_NAME=$1
 	RESOLUTION=$2
+	TIMEOUT="5"
 	if [[ "$#" -ne 2 ]]; then
                 echo "Usage: $0 BASE_MODEL_NAME IMAGE_RESOLUTION"
                 exit -6
         fi
 	
 	if [[ x${MODEL_NAME} == "xvgg16" ]]; then
-		if [[ ! -d ${TEMP_DATA_DIR}/models/ssd/VGGNet/VOC0712/SSD_${RESOLUTION}x${RESOLUTION} ]]; then
-			mkdir -p ${TEMP_DATA_DIR}/models/ssd/
+		if [[ ! -f ${TEMP_DATA_DIR}/models/ssd/VGGNet/VOC0712/SSD_${RESOLUTION}x${RESOLUTION}/VGG_VOC0712_SSD_${RESOLUTION}x${RESOLUTION}_iter_120000.caffemodel ]] || [[ ! -f ${TEMP_DATA_DIR}/models/ssd/VGGNet/VOC0712/SSD_${RESOLUTION}x${RESOLUTION}/test.prototxt ]]; then
+			## Downlaod from Internal Server
 			RET_CODE=`curl -L -I -s --connect-timeout ${TIMEOUT} ${INT_BASE_MODEL_SERVER} -w %{http_code} | tail -n1`
 			if [[ x${RET_CODE} == "x200" ]]; then
-				echo "Begin to download base model: ${MODEL_NAME} from Internal server: ${INT_BASE_MODEL_SERVER} ..."
-				wget -r -nH --cut-dirs=2 --no-parent --reject="index.html*" ${INT_BASE_MODEL_SERVER}/VGGNet -P ${TEMP_DATA_DIR}/models/ssd/
+				echo "Begin to download base model: ${MODEL_NAME} with resolution: ${RESOLUTION}x${RESOLUTION} from Internal server: ${INT_BASE_MODEL_SERVER} ..."
+				if [[ ! -d ${TEMP_DATA_DIR}/models/ssd/VGGNet/VOC0712/SSD_${RESOLUTION}x${RESOLUTION} ]]; then
+					mkdir -p ${TEMP_DATA_DIR}/models/ssd/VGGNet/VOC0712/SSD_${RESOLUTION}x${RESOLUTION}
+				fi
+				cd ${TEMP_DATA_DIR}/models/ssd/VGGNet/VOC0712/
+				curl -O ${INT_BASE_MODEL_SERVER}/VGGNet/VOC0712/classname.txt
+				cd - >> /dev/null 2>&1
+				cd ${TEMP_DATA_DIR}/models/ssd/VGGNet/VOC0712/SSD_${RESOLUTION}x${RESOLUTION}/
+				curl -OO ${INT_BASE_MODEL_SERVER}/VGGNet/VOC0712/SSD_${RESOLUTION}x${RESOLUTION}/{test.prototxt,VGG_VOC0712_SSD_${RESOLUTION}x${RESOLUTION}_iter_120000.caffemodel}
+				cd - >> /dev/null 2>&1
 			else
-				RET_CODE=`curl -L -I -s --connect-timeout ${TIMEOUT} ${EXT_BASE_MODEL_SERVER} -w %{http_code} | tail -n1`
-				if [[ x${RET_CODE} == "x200" ]]; then
-					echo "Begin to download base model: ${MODEL_NAME} from External server: ${EXT_BASE_MODEL_SERVER} ..."
-				###External server
+				## Downlaod from External Server
+				eval EXT_VGG_BASE_MODEL="\${EXT_VGG_BASE_MODEL_${RESOLUTION}}"
+				curl -L -I -s --connect-timeout ${TIMEOUT} ${EXT_VGG_BASE_MODEL} -w %{http_code} | grep "HTTP/1.1 200" >> /dev/null 2>&1
+				if [[ $? ]]; then
+					echo "Begin to download base model: ${MODEL_NAME} with resolution: ${RESOLUTION}x${RESOLUTION} from External server: ${EXT_VGG_BASE_MODEL} ..."
+					if [[ ! -d ${TEMP_DATA_DIR}/models/ssd/ ]]; then
+						mkdir -p ${TEMP_DATA_DIR}/models/ssd/
+					fi
+					wget ${EXT_VGG_BASE_MODEL} -O ${TEMP_DATA_DIR}/models/ssd/models_VGGNet_VOC0712_SSD_${RESOLUTION}x${RESOLUTION}.tar.gz
+					tar xvf ${TEMP_DATA_DIR}/models/ssd/models_VGGNet_VOC0712_SSD_${RESOLUTION}x${RESOLUTION}.tar.gz -C ${TEMP_DATA_DIR}/models/ssd/ >> /dev/null 2>&1
+					mv ${TEMP_DATA_DIR}/models/ssd/models/VGGNet/ ${TEMP_DATA_DIR}/models/ssd/
+					rm -fr ${TEMP_DATA_DIR}/models/ssd/models/
 				else
-					echo "Can not connect to Server: ${EXT_BASE_MODEL_SERVER}, please check and try again. Exiting..."
+					echo "Can not connect to Server: ${EXT_VGG_BASE_MODEL}, download base model: ${MODEL_NAME} with resolution: ${RESOLUTION}x${RESOLUTION} failed! Please check and try again. Exiting..."
 					exit -7
 				fi
 			fi
@@ -57,6 +76,7 @@ function DOWNLOAD_BASE_MODEL(){
 			echo "Base model: {MODEL_NAME} already exists in ${TEMP_DATA_DIR}/models/ssd/VGGNet/VOC0712/SSD_${RESOLUTION}x${RESOLUTION}, will not download again!"
 		fi
 	elif [[ x${MODEL_NAME} == "alexnet" ]]; then
+	echo "alex"
 
 	fi
 	
@@ -165,40 +185,43 @@ function COCO_SPLIT_ANNO(){
 	fi
 }
 
-
-if [[ x${DATA_SET} == "xvoc0712" ]]; then
-        ## Download and Extract PASCAL VOC dataset
-        if [[ ! -d ${PASCAL_DATA_DIR}/VOCdevkit ]]; then
-		if [[ ! -d ${PASCAL_DATA_DIR} ]]; then
-  		      mkdir -p ${PASCAL_DATA_DIR}
+function DOWNLOAD_DATASET(){
+	if [[ x${DATA_SET} == "xvoc0712" ]]; then
+	        ## Download and Extract PASCAL VOC dataset
+	        if [[ ! -d ${PASCAL_DATA_DIR}/VOCdevkit ]]; then
+			if [[ ! -d ${PASCAL_DATA_DIR} ]]; then
+	  		      mkdir -p ${PASCAL_DATA_DIR}
+			fi
+	                DOWNLOAD_PASCAL ${INT_PASCAL_SERVER} ${PASCAL_DATA_DIR} 0 ## From Internal Server
+	                if [[ $? != 0 ]]; then
+	                        DOWNLOAD_PASCAL ${EXT_PASCAL_SERVER} ${PASCAL_DATA_DIR} 1 ## From External Server
+	                fi
+	        else
+	                echo "Dataset ${DATA_SET} already exists in ${PASCAL_DATA_DIR}/VOCdevkit, will not download again."
+	        fi
+	elif [[ x${DATA_SET} == "xcoco" ]]; then
+	        ## Download and Extract COCO dataset
+	        if [[ ! -d ${COCO_DATA_DIR}/images ]] || [[ ! -d ${COCO_DATA_DIR}/annotations ]]; then
+			if [[ ! -d ${COCO_DATA_DIR} ]]; then
+				mkdir -p ${COCO_DATA_DIR}
+			fi
+	                DOWNLOAD_COCO ${INT_COCO_SERVER} ${COCO_DATA_DIR} 0 ## From Internal Server
+	                if [[ $? != 0 ]]; then
+	                        DOWNLOAD_COCO ${EXT_COCO_SERVER} ${COCO_DATA_DIR} 1 ## From External Server
+	                fi
+	        else
+	                echo "Dataset ${DATA_SET} already exists in ${COCO_DATA_DIR}/images, will not download again."
+	        fi
+	        ## Split Imageset and Annotations
+		if [[ ! -d ${COCO_DATA_DIR}/Annotations ]]; then
+		        COCO_SPLIT_ANNO ${TEMP_DATA_DIR}
+		else
+			echo "Splited ${DATA_SET} annotations already exists in ${COCO_DATA_DIR}/Annotations, will not split again."
 		fi
-                DOWNLOAD_PASCAL ${INT_PASCAL_SERVER} ${PASCAL_DATA_DIR} 0 ## From Internal Server
-                if [[ $? != 0 ]]; then
-                        DOWNLOAD_PASCAL ${EXT_PASCAL_SERVER} ${PASCAL_DATA_DIR} 1 ## From External Server
-                fi
-        else
-                echo "Dataset ${DATA_SET} already exists in ${PASCAL_DATA_DIR}/VOCdevkit, will not download again."
-        fi
-elif [[ x${DATA_SET} == "xcoco" ]]; then
-        ## Download and Extract COCO dataset
-        if [[ ! -d ${COCO_DATA_DIR}/images ]] || [[ ! -d ${COCO_DATA_DIR}/annotations ]]; then
-		if [[ ! -d ${COCO_DATA_DIR} ]]; then
-			mkdir -p ${COCO_DATA_DIR}
-		fi
-                DOWNLOAD_COCO ${INT_COCO_SERVER} ${COCO_DATA_DIR} 0 ## From Internal Server
-                if [[ $? != 0 ]]; then
-                        DOWNLOAD_COCO ${EXT_COCO_SERVER} ${COCO_DATA_DIR} 1 ## From External Server
-                fi
-        else
-                echo "Dataset ${DATA_SET} already exists in ${COCO_DATA_DIR}/images, will not download again."
-        fi
-        ## Split Imageset and Annotations
-	if [[ ! -d ${COCO_DATA_DIR}/Annotations ]]; then
-	        COCO_SPLIT_ANNO ${TEMP_DATA_DIR}
 	else
-		echo "Splited ${DATA_SET} annotations already exists in ${COCO_DATA_DIR}/Annotations, will not split again."
+	        echo "Dataset only can be voc0712 or coco currently! Exiting..."
+	        exit -4
 	fi
-else
-        echo "Dataset only can be voc0712 or coco currently! Exiting..."
-        exit -4
-fi
+}
+
+DOWNLOAD_BASE_MODEL vgg16 512
