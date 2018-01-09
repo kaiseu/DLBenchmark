@@ -25,9 +25,11 @@ EXT_COCO_SERVER="http://images.cocodataset.org/zips/"
 EXT_VGG_BASE_MODEL_300="https://doc-0o-30-docs.googleusercontent.com/docs/securesc/ha0ro937gcuc7l7deffksulhg5h7mbp1/4vekjv3i84tfbagshmm8fhibbemagvbk/1515369600000/09260862254863227534/*/0BzKzrI_SkD1_WVVTSmQxU0dVRzA?e=download"
 EXT_VGG_BASE_MODEL_512="https://doc-0s-30-docs.googleusercontent.com/docs/securesc/ha0ro937gcuc7l7deffksulhg5h7mbp1/k0ivavusfo30kuo3un6ee1bjutqu8bnb/1515405600000/09260862254863227534/*/0BzKzrI_SkD1_ZDIxVHBEcUNBb2s?e=download"
 EXT_ALEXNET_BASE_MODEL_300="https://storage.googleapis.com/drive-bulk-export-anonymous/20180108T064845Z/4133399871716478688/6e39bd56-ef20-422d-b7a6-ec6eed6ed5a4/1/a9eb60b0-f7f2-41a5-bc3f-a825ae0e6f16?authuser"
-PASCAL_DATA_DIR="${TEMP_DATA_DIR}/data/pascal"
-COCO_DATA_DIR="${TEMP_DATA_DIR}/data/coco"
+PASCAL_DATA_DIR="${TEMP_DATA_DIR}/data/PASCAL"
+COCO_DATA_DIR="${TEMP_DATA_DIR}/data/COCO"
 TIMEOUT="5"
+SSD_JARS_NAME="pipeline-0.1-SNAPSHOT-jar-with-dependencies.jar"
+SSD_JARS_PATH="${TEMP_DATA_DIR}/models/ssd/jars/${SSD_JARS_NAME}"
 
 
 ## Downlaod Base Models Based on Local Configurations
@@ -310,6 +312,45 @@ function DOWNLOAD_DATA_SET(){
 	fi
 }
 
+
+function CONVERT_SEQ(){
+	echo "==============================================================================================="
+	if [[ ! -f ${SSD_JARS_PATH} ]]; then
+		echo "No Local Executable SSD Jars available, will try to download it ..."
+		REMOTE_SSD_JAR="${INT_BASE_MODEL_SERVER}/jars/${SSD_JARS_NAME}"
+		echo "Testing the Network connection to: ${REMOTE_SSD_JAR} ..."
+		RET_CODE=`curl -L -I -s --connect-timeout ${TIMEOUT} ${REMOTE_SSD_JAR} -w %{http_code} | tail -n1`
+		if [[ x${RET_CODE} == "x200" ]]; then
+			echo "Network connection is OK!"	
+			echo "Begin to download Executable SSD Jars ..."
+			cd ${TEMP_DATA_DIR}/models/ssd/
+			curl -O ${REMOTE_SSD_JAR}
+			cd - >> /dev/null 2>&1
+			echo "Download Done!"
+			echo "Executable SSD Jars have been saved to: ${SSD_JARS_PATH}"
+			echo "==============================================================================================="
+		else
+			echo "Network connection failed. Please build the SSD first."
+			
+		fi
+	else
+		if [[ x${DATA_SET} == "xVOC0712" ]]; then
+			echo "Begin to convert ${DATA_SET} test data ..."
+			java -cp ${SSD_JARS_PATH} com.intel.analytics.zoo.pipeline.common.dataset.RoiImageSeqGenerator -f ${PASCAL_DATA_DIR}/VOCdevkit -o ${PASCAL_DATA_DIR}/seq/test -i voc_2007_test -p ${TOTAL_CORES}
+			echo "Convert done."
+			echo "Begin to convert ${DATA_SET} train data ..."
+			java -cp ${SSD_JARS_PATH} com.intel.analytics.zoo.pipeline.common.dataset.RoiImageSeqGenerator -f ${PASCAL_DATA_DIR}/VOCdevkit -o ${PASCAL_DATA_DIR}/seq/train -i voc_2007_trainval -p ${TOTAL_CORES}
+			echo "Convert done."
+        	elif [[ x${DATA_SET} == "xCOCO" ]]; then
+			echo "Begin to convert ${DATA_SET} minival data ..."
+			java -cp ${SSD_JARS_PATH} com.intel.analytics.zoo.pipeline.common.dataset.RoiImageSeqGenerator -f ${COCO_DATA_DIR} -o ${COCO_DATA_DIR}/seq/coco-minival -i coco-minival -p ${TOTAL_CORES}
+			echo "Convert done."
+        	else
+                	echo "Dataset only can be VOC0712 or COCO currently! Exiting..."
+                	exit -11
+        	fi	
+	fi
+}
 
 ## Start from here
 
