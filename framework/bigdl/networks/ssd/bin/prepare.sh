@@ -323,7 +323,10 @@ function CONVERT_SEQ(){
 		if [[ x${RET_CODE} == "x200" ]]; then
 			echo "Network connection is OK!"	
 			echo "Begin to download Executable SSD Jars ..."
-			cd ${TEMP_DATA_DIR}/models/ssd/
+			if [[ ! -d ${TEMP_DATA_DIR}/models/ssd/jars ]]; then
+				mkdir -p ${TEMP_DATA_DIR}/models/ssd/jars
+			fi
+			cd ${TEMP_DATA_DIR}/models/ssd/jars
 			curl -O ${REMOTE_SSD_JAR}
 			cd - >> /dev/null 2>&1
 			echo "Download Done!"
@@ -354,5 +357,6 @@ function CONVERT_SEQ(){
 
 ## Start from here
 
-DOWNLOAD_BASE_MODEL 
 DOWNLOAD_DATA_SET
+CONVERT_SEQ
+#DOWNLOAD_BASE_MODEL 
