@@ -1,4 +1,9 @@
-1. Folder PythonAPI and common is modified from [here](https://github.com/weiliu89/coco/tree/dev)
+1. First needs to install some dependencies(for CentOS)
+```
+pip install Cython matplotlib
+yum install -y tkinter
+```
+2. Folder PythonAPI and common is modified from [here](https://github.com/weiliu89/coco/tree/dev)
 ```
 git clone https://github.com/weiliu89/coco.git
 cd coco
