@@ -28,8 +28,6 @@ EXT_ALEXNET_BASE_MODEL_300="https://storage.googleapis.com/drive-bulk-export-ano
 PASCAL_DATA_DIR="${TEMP_DATA_DIR}/data/PASCAL"
 COCO_DATA_DIR="${TEMP_DATA_DIR}/data/COCO"
 TIMEOUT="5"
-SSD_JARS_NAME="pipeline-0.1-SNAPSHOT-jar-with-dependencies.jar"
-SSD_JARS_PATH="${TEMP_DATA_DIR}/models/ssd/jars/${SSD_JARS_NAME}"
 
 
 ## Downlaod Base Models Based on Local Configurations
@@ -336,27 +334,29 @@ function CONVERT_SEQ(){
 			echo "Network connection failed. Please build the SSD first."
 			
 		fi
-	else
-		if [[ x${DATA_SET} == "xVOC0712" ]]; then
-			echo "Begin to convert ${DATA_SET} test data ..."
-			java -cp ${SSD_JARS_PATH} com.intel.analytics.zoo.pipeline.common.dataset.RoiImageSeqGenerator -f ${PASCAL_DATA_DIR}/VOCdevkit -o ${PASCAL_DATA_DIR}/seq/test -i voc_2007_test -p ${TOTAL_CORES}
-			echo "Convert done."
-			echo "Begin to convert ${DATA_SET} train data ..."
-			java -cp ${SSD_JARS_PATH} com.intel.analytics.zoo.pipeline.common.dataset.RoiImageSeqGenerator -f ${PASCAL_DATA_DIR}/VOCdevkit -o ${PASCAL_DATA_DIR}/seq/train -i voc_2007_trainval -p ${TOTAL_CORES}
-			echo "Convert done."
-        	elif [[ x${DATA_SET} == "xCOCO" ]]; then
-			echo "Begin to convert ${DATA_SET} minival data ..."
-			java -cp ${SSD_JARS_PATH} com.intel.analytics.zoo.pipeline.common.dataset.RoiImageSeqGenerator -f ${COCO_DATA_DIR} -o ${COCO_DATA_DIR}/seq/coco-minival -i coco-minival -p ${TOTAL_CORES}
-			echo "Convert done."
-        	else
-                	echo "Dataset only can be VOC0712 or COCO currently! Exiting..."
-                	exit -11
-        	fi	
 	fi
+	if [[ x${DATA_SET} == "xVOC0712" ]]; then
+		echo "Begin to convert ${DATA_SET} test data ..."
+		java -cp ${SSD_JARS_PATH} com.intel.analytics.zoo.pipeline.common.dataset.RoiImageSeqGenerator -f ${PASCAL_DATA_DIR}/VOCdevkit -o ${PASCAL_DATA_DIR}/seq/test -i voc_2007_test -p ${TOTAL_CORES}
+		rm -fr ${PASCAL_DATA_DIR}/seq/test/.*crc
+		echo "Convert done."
+		echo "Begin to convert ${DATA_SET} train data ..."
+		java -cp ${SSD_JARS_PATH} com.intel.analytics.zoo.pipeline.common.dataset.RoiImageSeqGenerator -f ${PASCAL_DATA_DIR}/VOCdevkit -o ${PASCAL_DATA_DIR}/seq/train -i voc_2007_trainval -p ${TOTAL_CORES}
+		rm -fr ${PASCAL_DATA_DIR}/seq/train/.*crc
+		echo "Convert done."
+       	elif [[ x${DATA_SET} == "xCOCO" ]]; then
+		echo "Begin to convert ${DATA_SET} minival data ..."
+		java -cp ${SSD_JARS_PATH} com.intel.analytics.zoo.pipeline.common.dataset.RoiImageSeqGenerator -f ${COCO_DATA_DIR} -o ${COCO_DATA_DIR}/seq/coco-minival -i coco_minival2014 -p ${TOTAL_CORES}
+		rm -fr ${COCO_DATA_DIR}/seq/coco-minival/.*crc
+		echo "Convert done."
+       	else
+               	echo "Dataset only can be VOC0712 or COCO currently! Exiting..."
+               	exit -11
+       	fi	
 }
 
 ## Start from here
 
 DOWNLOAD_DATA_SET
 CONVERT_SEQ
-#DOWNLOAD_BASE_MODEL 
+DOWNLOAD_BASE_MODEL 

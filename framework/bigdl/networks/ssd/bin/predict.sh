@@ -1,14 +1,6 @@
 #! /bin/bash
 
 CURRENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-JAR="${CURRENT_DIR}/../jars/pipeline-0.1-SNAPSHOT-jar-with-dependencies.jar"
-
-if [[ -f "${JAR}" ]]; then
-	echo "Will use executable jar file: ${JAR}" 
-else
-	echo "Executable jar file does not exist, you may need to build the project first! Exiting..."
-	exit -1	
-fi
 
 CLASS=com.intel.analytics.zoo.pipeline.ssd.example.Predict
 
@@ -17,6 +9,13 @@ LOCAL_CONF_FILE=${CURRENT_DIR}/../conf/localSetting.conf
 echo "==============================================================================================="
 echo "Loading Local Configuration file from: ${LOCAL_CONF_FILE}..."
 source "${LOCAL_CONF_FILE}"
+
+if [[ -f "${SSD_JARS_PATH}" ]]; then
+        echo "Will use executable jar file: ${SSD_JARS_PATH}"
+else
+        echo "Executable jar file does not exist, you may need to build the project first! Exiting..."
+        exit -1
+fi
 
 #############################################################################
 ## Do NOT Change if you do not known what you're doing!
@@ -29,25 +28,26 @@ fi
 LOCAL_LOG_FILE=logs_${BASE_MODEL}_${IMAGE_RESOLUTION}x${IMAGE_RESOLUTION}_${DATA_SET}_${IS_QUANT_ENABLE}.log
 
 
-MODEL_HOME="${CURRENT_DIR}/../models"
-echo "MODEL_HOME is: ${MODEL_HOME}"
-
 ## Which Base Model to use?
 if [[ ${BASE_MODEL} == "vgg16" ]]; then
-	CLASSNAME=${MODEL_HOME}/VGGNet/VOC0712/classname.txt
-	CAFFEDEF=${MODEL_HOME}/VGGNet/VOC0712/SSD_${IMAGE_RESOLUTION}x${IMAGE_RESOLUTION}/test.prototxt
-	CAFFEMODEL=${MODEL_HOME}/VGGNet/VOC0712/SSD_${IMAGE_RESOLUTION}x${IMAGE_RESOLUTION}/VGG_VOC0712_SSD_${IMAGE_RESOLUTION}x${IMAGE_RESOLUTION}_iter_120000.caffemodel
+	CLASSNAME=${SSD_MODEL_HOME}/VGGNet/VOC0712/classname.txt
+	CAFFEDEF=${SSD_MODEL_HOME}/VGGNet/VOC0712/SSD_${IMAGE_RESOLUTION}x${IMAGE_RESOLUTION}/test.prototxt
+	CAFFEMODEL=${SSD_MODEL_HOME}/VGGNet/VOC0712/SSD_${IMAGE_RESOLUTION}x${IMAGE_RESOLUTION}/VGG_VOC0712_SSD_${IMAGE_RESOLUTION}x${IMAGE_RESOLUTION}_iter_120000.caffemodel
+	echo "SSD_MODEL_HOME is: ${SSD_MODEL_HOME}/VGGNet/VOC0712/"
 elif [[ ${BASE_MODEL} == "alexnet" ]]; then
-	CLASSNAME=${MODEL_HOME}/AlexNet/classname.txt
-	CAFFEDEF=${MODEL_HOME}/AlexNet/deploy.prototxt
-	CAFFEMODEL=${MODEL_HOME}/AlexNet/ALEXNET_JDLOGO_V4_SSD_${IMAGE_RESOLUTION}x${IMAGE_RESOLUTION}_iter_920.caffemodel
+	CLASSNAME=${SSD_MODEL_HOME}/AlexNet/classname.txt
+	CAFFEDEF=${SSD_MODEL_HOME}/AlexNet/deploy.prototxt
+	CAFFEMODEL=${SSD_MODEL_HOME}/AlexNet/ALEXNET_JDLOGO_V4_SSD_${IMAGE_RESOLUTION}x${IMAGE_RESOLUTION}_iter_920.caffemodel
+	echo "SSD_MODEL_HOME is: ${SSD_MODEL_HOME}/AlexNet/"
 fi
 
-if [[ ${DATA_SET} == "coco" ]]; then
-        SEQ_DATA_DIR=${TEMP_DATA_DIR}/coco-minival
-elif [[ ${DATA_SET} == "voc" ]]; then
-	SEQ_DATA_DIR=${TEMP_DATA_DIR}/voc-all
-fi
+if [[ x${DATA_SET} == "xVOC0712" ]]; then
+	SEQ_DATA_DIR=${PASCAL_DATA_DIR}/seq/test/
+elif [[ x${DATA_SET} == "xCOCO" ]]; then
+	SEQ_DATA_DIR=${COCO_DATA_DIR}/seq/coco-minival
+fi 
+
+echo "Sequence data dir is: ${SEQ_DATA_DIR}"
 
 echo "BASE_MODEL is: ${BASE_MODEL}"
 echo "DATA_SET is: ${DATA_SET}"
@@ -63,7 +63,7 @@ spark-submit \
   --driver-memory ${DRIVER_MEMORY} \
   --executor-memory ${EXECUTOR_MEMORY} \
   --class ${CLASS} \
-  ${JAR} \
+  ${SSD_JARS_PATH} \
   -f ${SEQ_DATA_DIR} \
   --folderType ${FOLDER_TYPE} \
   -o ${TEMP_OUTPUT_DIR} \
@@ -89,7 +89,7 @@ time spark-submit \
   --driver-memory ${DRIVER_MEMORY} \
   --executor-memory ${EXECUTOR_MEMORY} \
   --class ${CLASS} \
-  ${JAR} \
+  ${SSD_JARS_PATH} \
   -f ${SEQ_DATA_DIR} \
   --folderType ${FOLDER_TYPE} \
   -o ${TEMP_OUTPUT_DIR} \
@@ -103,4 +103,3 @@ time spark-submit \
   -s false \
   -p ${NUM_PARTITION} \
   -q ${IS_QUANT_ENABLE} | tee -a ${LOCAL_LOG_DIR}/${LOCAL_LOG_FILE}
-
