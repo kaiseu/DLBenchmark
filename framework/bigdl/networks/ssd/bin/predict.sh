@@ -41,14 +41,21 @@ elif [[ ${BASE_MODEL} == "alexnet" ]]; then
 	echo "SSD_MODEL_HOME is: ${SSD_MODEL_HOME}/AlexNet/"
 fi
 
-if [[ x${DATA_SET} == "xVOC0712" ]]; then
-	SEQ_DATA_DIR=${PASCAL_DATA_DIR}/seq/test/
-elif [[ x${DATA_SET} == "xCOCO" ]]; then
-	SEQ_DATA_DIR=${COCO_DATA_DIR}/seq/coco-minival
-fi 
+if [[ x${IS_HDFS} == "xtrue" ]]; then
+	if [[ x${DATA_SET} == "xVOC0712" ]]; then
+		SEQ_DATA_DIR=${HDFS_PASCAL_DIR}/seq/test/
+	elif [[ x${DATA_SET} == "xCOCO" ]]; then
+		SEQ_DATA_DIR=${HDFS_COCO_DIR}/seq/coco-minival
+	fi
+elif [[ x${IS_HDFS} == "xfalse" ]]; then
+	if [[ x${DATA_SET} == "xVOC0712" ]]; then
+		SEQ_DATA_DIR=${PASCAL_DATA_DIR}/seq/test/
+	elif [[ x${DATA_SET} == "xCOCO" ]]; then
+		SEQ_DATA_DIR=${COCO_DATA_DIR}/seq/coco-minival
+	fi
+fi
 
 echo "Sequence data dir is: ${SEQ_DATA_DIR}"
-
 echo "BASE_MODEL is: ${BASE_MODEL}"
 echo "DATA_SET is: ${DATA_SET}"
 
@@ -62,19 +69,16 @@ spark-submit \
   --total-executor-cores ${TOTAL_CORES} \
   --driver-memory ${DRIVER_MEMORY} \
   --executor-memory ${EXECUTOR_MEMORY} \
+  --driver-class-path ${SSD_JARS_PATH} \
   --class ${CLASS} \
   ${SSD_JARS_PATH} \
   -f ${SEQ_DATA_DIR} \
   --folderType ${FOLDER_TYPE} \
-  -o ${TEMP_OUTPUT_DIR} \
   --caffeDefPath  ${CAFFEDEF} \
   --caffeModelPath  ${CAFFEMODEL} \
-  -t ${BASE_MODEL} \
   --classname ${CLASSNAME} \
-  -v false \
   -b ${BATCHSIZE} \
   -r ${IMAGE_RESOLUTION} \
-  -s false \
   -p ${NUM_PARTITION} \
   -q ${IS_QUANT_ENABLE}
 " | tee -a ${LOCAL_LOG_DIR}/${LOCAL_LOG_FILE}
@@ -88,18 +92,15 @@ time spark-submit \
   --total-executor-cores ${TOTAL_CORES} \
   --driver-memory ${DRIVER_MEMORY} \
   --executor-memory ${EXECUTOR_MEMORY} \
+  --driver-class-path ${SSD_JARS_PATH} \
   --class ${CLASS} \
   ${SSD_JARS_PATH} \
   -f ${SEQ_DATA_DIR} \
   --folderType ${FOLDER_TYPE} \
-  -o ${TEMP_OUTPUT_DIR} \
   --caffeDefPath  ${CAFFEDEF} \
   --caffeModelPath  ${CAFFEMODEL} \
-  -t ${BASE_MODEL} \
   --classname ${CLASSNAME} \
-  -v false \
   -b ${BATCHSIZE} \
   -r ${IMAGE_RESOLUTION} \
-  -s false \
   -p ${NUM_PARTITION} \
   -q ${IS_QUANT_ENABLE} | tee -a ${LOCAL_LOG_DIR}/${LOCAL_LOG_FILE}
