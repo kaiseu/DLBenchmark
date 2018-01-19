@@ -6,7 +6,7 @@ CLASS=com.intel.analytics.zoo.pipeline.ssd.example.Predict
 
 LOCAL_CONF_FILE=${CURRENT_DIR}/../conf/localSetting.conf
 
-echo "==============================================================================================="
+echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
 echo "Loading Local Configuration file from: ${LOCAL_CONF_FILE}..."
 source "${LOCAL_CONF_FILE}"
 
@@ -59,7 +59,7 @@ echo "Sequence data dir is: ${SEQ_DATA_DIR}"
 echo "BASE_MODEL is: ${BASE_MODEL}"
 echo "DATA_SET is: ${DATA_SET}"
 
-echo "==============================================================================================="
+echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
 date > ${LOCAL_LOG_DIR}/${LOCAL_LOG_FILE}
 echo "
 spark-submit \
@@ -83,7 +83,7 @@ spark-submit \
   -q ${IS_QUANT_ENABLE}
 " | tee -a ${LOCAL_LOG_DIR}/${LOCAL_LOG_FILE}
 
-echo "==============================================================================================="
+echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
 
 time spark-submit \
   --master ${SPARK_MASTER} \

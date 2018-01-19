@@ -7,11 +7,13 @@ CURRENT_DIR=$( cd $( dirname ${BASH_SOURCE[0]} ) && pwd )
 LOCAL_CONF_FILE=${CURRENT_DIR}/../conf/localSetting.conf
 if [[ -f ${LOCAL_CONF_FILE} ]]; then
 	echo "==============================================================================================="
+	echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
 	echo "Loading Local Configuration file from: ${LOCAL_CONF_FILE}..."
         source "${LOCAL_CONF_FILE}"
 	echo "Loading Done!"
 else
 	echo "==============================================================================================="
+	echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
 	echo "Local Configuration file:${LOCAL_CONF_FILE} does not exist, exiting..."
 	exit -1
 fi
@@ -37,7 +39,7 @@ function DOWNLOAD_BASE_MODEL(){
 		if [[ ! -f ${TEMP_DATA_DIR}/models/ssd/VGGNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}/VGG_VOC0712_SSD_${RESOLUTION}x${RESOLUTION}_iter_120000.caffemodel ]] || [[ ! -f ${TEMP_DATA_DIR}/models/ssd/VGGNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}/test.prototxt ]]; then
 			## Downlaod from Internal Server
 			INT_VGG_BASE_MODEL="${INT_BASE_MODEL_SERVER}/VGGNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}"
-        		echo "==============================================================================================="
+			echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
 			echo "Testing the Network connection to: ${INT_VGG_BASE_MODEL} ..."
 			RET_CODE=`curl -L -I -s --connect-timeout ${TIMEOUT} ${INT_VGG_BASE_MODEL} -w %{http_code} | tail -n1`
 			if [[ x${RET_CODE} == "x200" ]]; then
@@ -54,7 +56,7 @@ function DOWNLOAD_BASE_MODEL(){
 				cd - >> /dev/null 2>&1
 				echo "Download Done!"
 				echo "Base model have been saved to: ${TEMP_DATA_DIR}/models/ssd/VGGNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}"
-				echo "==============================================================================================="
+				echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
 			else
 				echo "Network connection failed."
 				## Downlaod from External Server, Only support dataset VOC0712
@@ -74,7 +76,7 @@ function DOWNLOAD_BASE_MODEL(){
 						rm -fr ${TEMP_DATA_DIR}/models/ssd/models/
 						echo "Download Done!"
 						echo "Base model have been saved to: ${TEMP_DATA_DIR}/models/ssd/VGGNet/VOC0712/SSD_${RESOLUTION}x${RESOLUTION}"
-						echo "==============================================================================================="
+						echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
 					else
 						echo "Download base model: ${BASE_MODEL} failed, possibly because of the network issue"
 						exit -10
@@ -95,7 +97,7 @@ function DOWNLOAD_BASE_MODEL(){
                         fi
 			## Downlaod from Internal Server
 			INT_ALEX_BASE_MODEL=${INT_BASE_MODEL_SERVER}/AlexNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}
-			echo "==============================================================================================="
+			echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
 			echo "Testing the Network connection to: ${INT_ALEX_BASE_MODEL} ..."	
 			RET_CODE=`curl -L -I -s --connect-timeout ${TIMEOUT} ${INT_ALEX_BASE_MODEL} -w %{http_code} | tail -n1`
 			if [[ x${RET_CODE} == "x200" ]]; then
@@ -110,7 +112,7 @@ function DOWNLOAD_BASE_MODEL(){
 				cd - >> /dev/null 2>&1
 				echo "Download Done!"
 				echo "Base model have been saved to: ${TEMP_DATA_DIR}/models/ssd/AlexNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}"
-				echo "==============================================================================================="
+				echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
 			else
 				echo "Network connection failed."	
 				## Downlaod from External Server
@@ -132,7 +134,7 @@ function DOWNLOAD_BASE_MODEL(){
 						cd -
 						echo "Download Done!"
 		                                echo "Base model have been saved to: ${TEMP_DATA_DIR}/models/ssd/AlexNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}"
-						echo "==============================================================================================="
+						echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
 					else
 						echo "Download base model: ${BASE_MODEL} failed, possibly because of the network issue"
 						exit 11
@@ -183,7 +185,7 @@ function DOWNLOAD_PASCAL(){
 	cat *.tar | tar -xvf - -i >> /dev/null 2>&1
         cd - >> /dev/null 2>&1
         echo "Extract Done!"
-        echo "==============================================================================================="
+	echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
 }
 
 
@@ -233,7 +235,7 @@ function DOWNLOAD_COCO(){
 	mv instances_valminusminival2014.json annotations/
 	echo "Annotations have been moved to: ${DEST_DIR}/annotations"
         cd - >> /dev/null 2>&1
-        echo "==============================================================================================="
+	echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
 }
 
 
@@ -246,7 +248,7 @@ function COCO_SPLIT_ANNO(){
 	DATA_DIR=$1 ## coco dataset path
 	PY_BATCH_SPLIT=${CURRENT_DIR}/../data/coco/PythonAPI/scripts/batch_split_annotation.py
 	if [[ -f ${PY_BATCH_SPLIT} ]]; then
-		echo "==============================================================================================="
+		echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
 		echo "Calling Python script: ${PY_BATCH_SPLIT} ..."
 		python ${PY_BATCH_SPLIT} ${DATA_DIR}
 		echo "Split annotations done!"
@@ -265,7 +267,7 @@ function DOWNLOAD_DATA_SET(){
 				echo "Creating Directory: ${PASCAL_DATA_DIR} ..."
 	  			mkdir -p ${PASCAL_DATA_DIR}
 			fi
-			echo "==============================================================================================="
+			echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
 			echo "Will Download dataset: ${DATA_SET} ..."
 	                DOWNLOAD_PASCAL ${INT_PASCAL_SERVER} ${PASCAL_DATA_DIR} 0 ## From Internal Server
 	                if [[ $? != 0 ]]; then
@@ -285,7 +287,7 @@ function DOWNLOAD_DATA_SET(){
 				echo "Creating Directory: ${COCO_DATA_DIR} ..."
 				mkdir -p ${COCO_DATA_DIR}
 			fi
-			echo "==============================================================================================="
+			echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
 			echo "Will Download dataset: ${DATA_SET} ..."
 	                DOWNLOAD_COCO ${INT_COCO_SERVER} ${COCO_DATA_DIR} 0 ## From Internal Server
 	                if [[ $? != 0 ]]; then
@@ -312,7 +314,7 @@ function DOWNLOAD_DATA_SET(){
 
 
 function CONVERT_SEQ(){
-	echo "==============================================================================================="
+	echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
 	if [[ ! -f ${SSD_JARS_PATH} ]]; then
 		echo "No Local Executable SSD Jars available, will try to download it ..."
 		REMOTE_SSD_JAR="${INT_BASE_MODEL_SERVER}/jars/${SSD_JARS_NAME}"
@@ -329,7 +331,7 @@ function CONVERT_SEQ(){
 			cd - >> /dev/null 2>&1
 			echo "Download Done!"
 			echo "Executable SSD Jars have been saved to: ${SSD_JARS_PATH}"
-			echo "==============================================================================================="
+			echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
 		else
 			echo "Network connection failed. Please build the SSD first."
 			
