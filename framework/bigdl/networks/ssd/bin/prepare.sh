@@ -337,17 +337,19 @@ function CONVERT_SEQ(){
 	fi
 	if [[ x${DATA_SET} == "xVOC0712" ]]; then
 		echo "Begin to convert ${DATA_SET} test data ..."
-		java -cp ${SSD_JARS_PATH} com.intel.analytics.zoo.pipeline.common.dataset.RoiImageSeqGenerator -f ${PASCAL_DATA_DIR}/VOCdevkit -o ${PASCAL_DATA_DIR}/seq/test -i voc_2007_test -p ${TOTAL_CORES}
+		rm -fr ${PASCAL_DATA_DIR}/seq/
+		java -cp ${SSD_JARS_PATH} com.intel.analytics.zoo.pipeline.common.dataset.RoiImageSeqGenerator -f ${PASCAL_DATA_DIR}/VOCdevkit -o ${PASCAL_DATA_DIR}/seq/test -i voc_2007_test -p ${TOTAL_CORES} >> /dev/null 2>&1
 		rm -fr ${PASCAL_DATA_DIR}/seq/test/.*crc
 		echo "Convert done."
 		echo "Begin to convert ${DATA_SET} train data ..."
-		java -cp ${SSD_JARS_PATH} com.intel.analytics.zoo.pipeline.common.dataset.RoiImageSeqGenerator -f ${PASCAL_DATA_DIR}/VOCdevkit -o ${PASCAL_DATA_DIR}/seq/train -i voc_2007_trainval -p ${TOTAL_CORES}
+		java -cp ${SSD_JARS_PATH} com.intel.analytics.zoo.pipeline.common.dataset.RoiImageSeqGenerator -f ${PASCAL_DATA_DIR}/VOCdevkit -o ${PASCAL_DATA_DIR}/seq/train -i voc_2007_trainval -p ${TOTAL_CORES} >> /dev/null 2>&1
 		rm -fr ${PASCAL_DATA_DIR}/seq/train/.*crc
 		echo "Convert done."
 
 		COPY_TO_HDFS ${PASCAL_DATA_DIR}/seq ${HDFS_PASCAL_DIR}
        	elif [[ x${DATA_SET} == "xCOCO" ]]; then
 		echo "Begin to convert ${DATA_SET} minival data ..."
+		rm -fr ${COCO_DATA_DIR}/seq/
 		java -cp ${SSD_JARS_PATH} com.intel.analytics.zoo.pipeline.common.dataset.RoiImageSeqGenerator -f ${COCO_DATA_DIR} -o ${COCO_DATA_DIR}/seq/coco-minival -i coco_minival2014 -p ${TOTAL_CORES}
 		rm -fr ${COCO_DATA_DIR}/seq/coco-minival/.*crc
 		echo "Convert done."
@@ -364,7 +366,7 @@ function COPY_TO_HDFS(){
 	DEST_HDFS=$2
 
 	if [[ ! -d ${SRC_DIR} ]] || [[ "`ls -A ${SRC_DIR}`" == "" ]]; then
-		echo "Source dir does not exist or is empty, exiting ..."
+		echo "Source dir: ${SRC_DIR} does not exist or is empty, exiting ..."
 		exit -12
 	fi
 
@@ -376,6 +378,7 @@ function COPY_TO_HDFS(){
 			hdfs dfs -mkdir -p ${DEST_HDFS}
 			echo "Create done!"
 		fi
+		hdfs dfs -rm -r -skipTrash ${DEST_HDFS}/* >> /dev/null  2>&1 ## delete if there's previous files
 		echo "Transfering the data ..."
 		hdfs dfs -put ${SRC_DIR} ${DEST_HDFS}
 		if [[ $? == "0" ]]; then 
@@ -387,7 +390,7 @@ function COPY_TO_HDFS(){
 		echo "Warning: you have chosen to use source data from local disks, so if there're multi nodes in your cluster, you need copy the source data to the same dir of each node first."
 		echo "Warning: You may need below command: "
 		echo "Warning: pssh -h SLAVES -i mkdir -p ${SRC_DIR}"
-		echo "Warning: pscp -h SLAVES -r ${SRC_DIR}/* ${SRC_DIR}"
+		echo "Warning: pscp -h SLAVES -r ${SRC_DIR} ${SRC_DIR}/../"
 		exit -13
 	else
 		echo "IS_HDFS can only be true or false."
