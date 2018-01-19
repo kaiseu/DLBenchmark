@@ -344,15 +344,55 @@ function CONVERT_SEQ(){
 		java -cp ${SSD_JARS_PATH} com.intel.analytics.zoo.pipeline.common.dataset.RoiImageSeqGenerator -f ${PASCAL_DATA_DIR}/VOCdevkit -o ${PASCAL_DATA_DIR}/seq/train -i voc_2007_trainval -p ${TOTAL_CORES}
 		rm -fr ${PASCAL_DATA_DIR}/seq/train/.*crc
 		echo "Convert done."
+
+		COPY_TO_HDFS ${PASCAL_DATA_DIR}/seq ${HDFS_PASCAL_DIR}
        	elif [[ x${DATA_SET} == "xCOCO" ]]; then
 		echo "Begin to convert ${DATA_SET} minival data ..."
 		java -cp ${SSD_JARS_PATH} com.intel.analytics.zoo.pipeline.common.dataset.RoiImageSeqGenerator -f ${COCO_DATA_DIR} -o ${COCO_DATA_DIR}/seq/coco-minival -i coco_minival2014 -p ${TOTAL_CORES}
 		rm -fr ${COCO_DATA_DIR}/seq/coco-minival/.*crc
 		echo "Convert done."
+
+		COPY_TO_HDFS ${COCO_DATA_DIR}/seq ${HDFS_COCO_DIR}
        	else
                	echo "Dataset only can be VOC0712 or COCO currently! Exiting..."
                	exit -11
        	fi	
+}
+
+function COPY_TO_HDFS(){
+	SRC_DIR=$1
+	DEST_HDFS=$2
+
+	if [[ ! -d ${SRC_DIR} ]] || [[ "`ls -A ${SRC_DIR}`" == "" ]]; then
+		echo "Source dir does not exist or is empty, exiting ..."
+		exit -12
+	fi
+
+	if [[ x${IS_HDFS} == "xtrue" ]]; then
+		echo "Will transfer the source data from LOCAL: ${SRC_DIR} to HDFS: ${DEST_HDFS} ..."
+		hdfs dfs -ls ${DEST_HDFS} >> /dev/null  2>&1
+		if [[ ! $? == "0" ]]; then ## if dir not exists on HDFS
+			echo "Creating HDFS dir: ${DEST_HDFS} ..."
+			hdfs dfs -mkdir -p ${DEST_HDFS}
+			echo "Create done!"
+		fi
+		echo "Transfering the data ..."
+		hdfs dfs -put ${SRC_DIR} ${DEST_HDFS}
+		if [[ $? == "0" ]]; then 
+			echo "Transfer Done!"
+		else
+			echo "Transfer finished with some error..."
+		fi
+	elif [[ x${IS_HDFS} == "xfalse" ]]; then
+		echo "Warning: you have chosen to use source data from local disks, so if there're multi nodes in your cluster, you need copy the source data to the same dir of each node first."
+		echo "Warning: You may need below command: "
+		echo "Warning: pssh -h SLAVES -i mkdir -p ${SRC_DIR}"
+		echo "Warning: pscp -h SLAVES -r ${SRC_DIR}/* ${SRC_DIR}"
+		exit -13
+	else
+		echo "IS_HDFS can only be true or false."
+		exit -14
+	fi
 }
 
 ## Start from here
