@@ -1,5 +1,6 @@
 #/bin/bash
 
+function RUN(){
 CURRENT_DIR=$( cd $( dirname ${BASH_SOURCE[0]} ) && pwd )
 BENCHMARK_ROOT=${CURRENT_DIR}/..
 
@@ -40,4 +41,14 @@ do
 	done
         echo -e "###############################################################################################\n\n\n\n"
 done
+}
 
+function ADD_DATE() {
+    eval INFO_LEVEL=$1
+    while IFS= read -r line; do
+            echo "`date +'%Y-%m-%d %H:%M:%S'` ${INFO_LEVEL}  $line"
+    done
+}
+
+
+RUN | ADD_DATE WARNING
