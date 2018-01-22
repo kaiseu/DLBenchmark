@@ -69,7 +69,6 @@ DATE_PREFIX "INFO"  "BASE_MODEL is: ${BASE_MODEL}"
 DATE_PREFIX "INFO"  "DATA_SET is: ${DATA_SET}"
 
 echo "****************************************************************"
-date > ${LOCAL_LOG_DIR}/${LOCAL_LOG_FILE}
 DATE_PREFIX "INFO" "
 spark-submit \
   --master ${SPARK_MASTER} \

@@ -28,31 +28,24 @@ function RUN_NETWORK(){
 	CUR_ENGINE=$1
 	CUR_NETWORK=$2
 	CUR_PHASE=$3
+	LOGS_NETWORK_ROOT=$4
 	
 	CUR_ENGINE_ROOT=${BENCHMARK_ROOT}/framework/${CUR_ENGINE}
 	CUR_NETWORK_ROOT=${CUR_ENGINE_ROOT}/networks/${CUR_NETWORK}
-	LOGS_ENGINE_ROOT=${LOGS_ROOT}/${CUR_ENGINE}
-	LOGS_NETWORK_ROOT=${LOGS_ENGINE_ROOT}/logs-${CUR_ENGINE}-${CUR_NETWORK}-`date +%Y%m%d%H%M%S`
 	LOGS_PHASE=${LOGS_NETWORK_ROOT}/${CUR_PHASE}.log
 	EXEC_SCRIPT=${CUR_NETWORK_ROOT}/bin/${CUR_PHASE}.sh
-	if [[ ! -d ${LOGS_NETWORK_ROOT} ]]; then
-		mkdir -p ${LOGS_NETWORK_ROOT}
-	fi	
+	CHECK_EXIST_EXEC ${EXEC_SCRIPT}
+
 	LOAD_USER_CONF >> ${LOGS_PHASE}
 	echo "****************************************************************" | tee -a ${LOGS_PHASE}
 	DATE_PREFIX "INFO" "Current benchmark engine is: ${CUR_ENGINE}, engine root dir is: ${CUR_ENGINE_ROOT}." | tee -a ${LOGS_PHASE}
 	DATE_PREFIX "INFO" "Current network to run is: ${CUR_NETWORK}, network root dir is: ${CUR_NETWORK_ROOT}." | tee -a ${LOGS_PHASE}
 	DATE_PREFIX "INFO" "Current phase to run is: ${CUR_PHASE}, calling script: ${EXEC_SCRIPT} ..." | tee -a ${LOGS_PHASE}
+	START_TIME=$(date +%s)
 	sh ${EXEC_SCRIPT} | tee -a ${LOGS_PHASE}
-	DATE_PREFIX "INFO" "Engine: ${CUR_ENGINE} with network: ${CUR_NETWORK} for phase: ${CUR_PHASE} finished!" | tee -a ${LOGS_PHASE}
-	## Backup user settings and local configuration
-	LOGS_NETWORK_CONF_ROOT=${LOGS_NETWORK_ROOT}/dlbenchmark-configs
-	if [[ ! -d ${LOGS_NETWORK_CONF_ROOT} ]]; then
-		mkdir -p ${LOGS_NETWORK_CONF_ROOT}
-	fi
-	cp -r ${BENCHMARK_ROOT}/conf/userSettings.conf ${LOGS_NETWORK_CONF_ROOT} 
-	cp -r ${CUR_NETWORK_ROOT}/conf/localSetting.conf ${LOGS_NETWORK_CONF_ROOT} 
-	DATE_PREFIX "INFO" "Logs have been saved to: ${LOGS_NETWORK_ROOT}"
+	END_TIME=$(date +%s)
+	ELAPSED_SEC=$(( ${END_TIME} - ${START_TIME} ))
+	DATE_PREFIX "INFO" "Engine: ${CUR_ENGINE} with network: ${CUR_NETWORK} for phase: ${CUR_PHASE} finished, elapsed time is: ${ELAPSED_SEC}s" | tee -a ${LOGS_PHASE}
 }
 
 #function DATE_PREFIX(){
@@ -74,10 +67,24 @@ function RUN(){
 	do
 		for CUR_NETWORK in ${NETWORK};
 		do
+			LOGS_NETWORK_ROOT=${LOGS_ROOT}/${CUR_ENGINE}/logs-${CUR_ENGINE}-${CUR_NETWORK}-`date +%Y%m%d%H%M%S`
+			if [[ ! -d ${LOGS_NETWORK_ROOT} ]]; then
+				mkdir -p ${LOGS_NETWORK_ROOT}
+			fi
+
 			for CUR_PHASE in ${PHASE};
 			do
-				RUN_NETWORK ${CUR_ENGINE} ${CUR_NETWORK} ${CUR_PHASE}
+				RUN_NETWORK ${CUR_ENGINE} ${CUR_NETWORK} ${CUR_PHASE} ${LOGS_NETWORK_ROOT}
 			done
+
+			## Backup user settings and local configuration
+			LOGS_NETWORK_CONF_ROOT=${LOGS_NETWORK_ROOT}/dlbenchmark-configs
+			if [[ ! -d ${LOGS_NETWORK_CONF_ROOT} ]]; then
+				 mkdir -p ${LOGS_NETWORK_CONF_ROOT}
+			fi
+			cp -r ${BENCHMARK_ROOT}/conf/userSettings.conf ${LOGS_NETWORK_CONF_ROOT}
+			cp -r ${BENCHMARK_ROOT}/framework/${CUR_ENGINE}/networks/${CUR_NETWORK}/conf/localSetting.conf ${LOGS_NETWORK_CONF_ROOT}
+			DATE_PREFIX "INFO" "Logs for engine: ${CUR_ENGINE} with network: ${CUR_NETWORK} have been saved to: ${LOGS_NETWORK_ROOT}"
 		done
 	done
 }
