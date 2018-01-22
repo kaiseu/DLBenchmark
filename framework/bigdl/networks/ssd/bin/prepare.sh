@@ -1,20 +1,25 @@
 #! /bin/bash
 ## Prepare the dataset based on the configuration
-
 CURRENT_DIR=$( cd $( dirname ${BASH_SOURCE[0]} ) && pwd )
+
+## Import functions
+if test -z ${DLBENCHMARK_FUNCS}; then
+	DLBENCHMARK_FUNCS=${CURRENT_DIR}/../../../../../scripts/function.sh
+fi
+if [[ ! -x ${DLBENCHMARK_FUNCS} ]]; then
+	chmod +x ${DLBENCHMARK_FUNCS}
+fi
+source ${DLBENCHMARK_FUNCS}
 
 ## Load Local Configurations
 LOCAL_CONF_FILE=${CURRENT_DIR}/../conf/localSetting.conf
 if [[ -f ${LOCAL_CONF_FILE} ]]; then
-	echo "==============================================================================================="
-	echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
-	echo "Loading Local Configuration file from: ${LOCAL_CONF_FILE}..."
+	echo "****************************************************************"
+	DATE_PREFIX "INFO" "Loading Local Configuration file from: ${LOCAL_CONF_FILE}..."
         source "${LOCAL_CONF_FILE}"
-	echo "Loading Done!"
+	DATE_PREFIX "INFO" "Loading Done!"
 else
-	echo "==============================================================================================="
-	echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
-	echo "Local Configuration file:${LOCAL_CONF_FILE} does not exist, exiting..."
+	DATE_PREFIX "ERROR" "Local Configuration file:${LOCAL_CONF_FILE} does not exist, exiting..."
 	exit -1
 fi
 
@@ -39,12 +44,12 @@ function DOWNLOAD_BASE_MODEL(){
 		if [[ ! -f ${TEMP_DATA_DIR}/models/ssd/VGGNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}/VGG_VOC0712_SSD_${RESOLUTION}x${RESOLUTION}_iter_120000.caffemodel ]] || [[ ! -f ${TEMP_DATA_DIR}/models/ssd/VGGNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}/test.prototxt ]]; then
 			## Downlaod from Internal Server
 			INT_VGG_BASE_MODEL="${INT_BASE_MODEL_SERVER}/VGGNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}"
-			echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
-			echo "Testing the Network connection to: ${INT_VGG_BASE_MODEL} ..."
+			echo "****************************************************************"
+			DATE_PREFIX "INFO" "Testing the Network connection to: ${INT_VGG_BASE_MODEL} ..."
 			RET_CODE=`curl -L -I -s --connect-timeout ${TIMEOUT} ${INT_VGG_BASE_MODEL} -w %{http_code} | tail -n1`
 			if [[ x${RET_CODE} == "x200" ]]; then
-				echo "Network connection is OK!"	
-				echo "Begin to download base model: ${BASE_MODEL} with resolution: ${RESOLUTION}x${RESOLUTION} from Internal server: ${INT_VGG_BASE_MODEL} ..."
+				DATE_PREFIX "INFO" "Network connection is OK!"	
+				DATE_PREFIX "INFO" "Begin to download base model: ${BASE_MODEL} with resolution: ${RESOLUTION}x${RESOLUTION} from Internal server: ${INT_VGG_BASE_MODEL} ..."
 				if [[ ! -d ${TEMP_DATA_DIR}/models/ssd/VGGNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION} ]]; then
 					mkdir -p ${TEMP_DATA_DIR}/models/ssd/VGGNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}
 				fi
@@ -54,18 +59,18 @@ function DOWNLOAD_BASE_MODEL(){
 				cd ${TEMP_DATA_DIR}/models/ssd/VGGNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}/
 				curl -OO ${INT_BASE_MODEL_SERVER}/VGGNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}/{test.prototxt,VGG_VOC0712_SSD_${RESOLUTION}x${RESOLUTION}_iter_120000.caffemodel}
 				cd - >> /dev/null 2>&1
-				echo "Download Done!"
-				echo "Base model have been saved to: ${TEMP_DATA_DIR}/models/ssd/VGGNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}"
-				echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
+				DATE_PREFIX "INFO" "Download Done!"
+				DATE_PREFIX "INFO" "Base model have been saved to: ${TEMP_DATA_DIR}/models/ssd/VGGNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}"
+				echo "****************************************************************"
 			else
-				echo "Network connection failed."
+				DATE_PREFIX "INFO" "Network connection failed."
 				## Downlaod from External Server, Only support dataset VOC0712
 				eval EXT_VGG_BASE_MODEL="\${EXT_VGG_BASE_MODEL_${RESOLUTION}}"
-				echo "Testing the Network connection to: ${EXT_VGG_BASE_MODEL} ..."
+				DATE_PREFIX "INFO" "Testing the Network connection to: ${EXT_VGG_BASE_MODEL} ..."
 				curl -L -I -s --connect-timeout ${TIMEOUT} ${EXT_VGG_BASE_MODEL} -w %{http_code} | grep "HTTP/1.1 200" >> /dev/null 2>&1
 				if [[ $? ]]; then
-					echo "Network connection is OK!"
-					echo "Begin to download base model: ${BASE_MODEL} with resolution: ${RESOLUTION}x${RESOLUTION} from External server: ${EXT_VGG_BASE_MODEL} ..."
+					DATE_PREFIX "INFO" "Network connection is OK!"
+					DATE_PREFIX "INFO" "Begin to download base model: ${BASE_MODEL} with resolution: ${RESOLUTION}x${RESOLUTION} from External server: ${EXT_VGG_BASE_MODEL} ..."
 					if [[ ! -d ${TEMP_DATA_DIR}/models/ssd/ ]]; then
 						mkdir -p ${TEMP_DATA_DIR}/models/ssd/
 					fi
@@ -74,35 +79,35 @@ function DOWNLOAD_BASE_MODEL(){
 						tar xvf ${TEMP_DATA_DIR}/models/ssd/models_VGGNet_VOC0712_SSD_${RESOLUTION}x${RESOLUTION}.tar.gz -C ${TEMP_DATA_DIR}/models/ssd/ >> /dev/null 2>&1
 						mv ${TEMP_DATA_DIR}/models/ssd/models/VGGNet/ ${TEMP_DATA_DIR}/models/ssd/
 						rm -fr ${TEMP_DATA_DIR}/models/ssd/models/
-						echo "Download Done!"
-						echo "Base model have been saved to: ${TEMP_DATA_DIR}/models/ssd/VGGNet/VOC0712/SSD_${RESOLUTION}x${RESOLUTION}"
-						echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
+						DATE_PREFIX "INFO" "Download Done!"
+						DATE_PREFIX "INFO" "Base model have been saved to: ${TEMP_DATA_DIR}/models/ssd/VGGNet/VOC0712/SSD_${RESOLUTION}x${RESOLUTION}"
+						echo "****************************************************************"
 					else
-						echo "Download base model: ${BASE_MODEL} failed, possibly because of the network issue"
+						DATE_PREFIX "INFO" "Download base model: ${BASE_MODEL} failed, possibly because of the network issue"
 						exit -10
 					fi
 				else
-					echo "Can not connect to Server: ${EXT_VGG_BASE_MODEL}, download base model: ${BASE_MODEL} with resolution: ${RESOLUTION}x${RESOLUTION} failed! Please check and try again. Exiting..."
+					DATE_PREFIX "INFO" "Can not connect to Server: ${EXT_VGG_BASE_MODEL}, download base model: ${BASE_MODEL} with resolution: ${RESOLUTION}x${RESOLUTION} failed! Please check and try again. Exiting..."
 					exit -7
 				fi
 			fi
 		else
-			echo "Base model: ${BASE_MODEL} already exists in ${TEMP_DATA_DIR}/models/ssd/VGGNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}, will not download again!"
+			DATE_PREFIX "INFO" "Base model: ${BASE_MODEL} already exists in ${TEMP_DATA_DIR}/models/ssd/VGGNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}, will not download again!"
 		fi
 	elif [[ x${BASE_MODEL} == "xalexnet" ]]; then
 		if [[ ! -f ${TEMP_DATA_DIR}/models/ssd/AlexNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}/ALEXNET_JDLOGO_V4_SSD_${RESOLUTION}x${RESOLUTION}_iter_920.caffemodel ]] || [[ ! -f ${TEMP_DATA_DIR}/models/ssd/AlexNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}/deploy.prototxt ]] || [[ ! -f ${TEMP_DATA_DIR}/models/ssd/AlexNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}/classname.txt ]]; then
 			if [[ ! x${RESOLUTION} == "x300" ]]; then
-                                        echo "Only support ${BASE_MODEL} with resolution: 300x300 currently! Exiting..."
+                                        DATE_PREFIX "INFO" "Only support ${BASE_MODEL} with resolution: 300x300 currently! Exiting..."
                                         exit -8
                         fi
 			## Downlaod from Internal Server
 			INT_ALEX_BASE_MODEL=${INT_BASE_MODEL_SERVER}/AlexNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}
-			echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
-			echo "Testing the Network connection to: ${INT_ALEX_BASE_MODEL} ..."	
+			echo "****************************************************************"
+			DATE_PREFIX "INFO" "Testing the Network connection to: ${INT_ALEX_BASE_MODEL} ..."	
 			RET_CODE=`curl -L -I -s --connect-timeout ${TIMEOUT} ${INT_ALEX_BASE_MODEL} -w %{http_code} | tail -n1`
 			if [[ x${RET_CODE} == "x200" ]]; then
-				echo "Network connection is OK!"	
-				echo "Begin to download base model: ${BASE_MODEL} with resolution: ${RESOLUTION}x${RESOLUTION} from Internal server: ${INT_ALEX_BASE_MODEL} ..."
+				DATE_PREFIX "INFO" "Network connection is OK!"	
+				DATE_PREFIX "INFO" "Begin to download base model: ${BASE_MODEL} with resolution: ${RESOLUTION}x${RESOLUTION} from Internal server: ${INT_ALEX_BASE_MODEL} ..."
 				ALEX_BASE_MODEL_DIR=${TEMP_DATA_DIR}/models/ssd/AlexNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}
 				if [[ ! -d ${ALEX_BASE_MODEL_DIR} ]]; then
 					mkdir -p ${ALEX_BASE_MODEL_DIR}
@@ -110,18 +115,18 @@ function DOWNLOAD_BASE_MODEL(){
 				cd ${ALEX_BASE_MODEL_DIR}
 				curl -OOO ${INT_ALEX_BASE_MODEL}/{ALEXNET_JDLOGO_V4_SSD_300x300_iter_920.caffemodel,deploy.prototxt,classname.txt}
 				cd - >> /dev/null 2>&1
-				echo "Download Done!"
-				echo "Base model have been saved to: ${TEMP_DATA_DIR}/models/ssd/AlexNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}"
-				echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
+				DATE_PREFIX "INFO" "Download Done!"
+				DATE_PREFIX "INFO" "Base model have been saved to: ${TEMP_DATA_DIR}/models/ssd/AlexNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}"
+				echo "****************************************************************"
 			else
-				echo "Network connection failed."	
+				DATE_PREFIX "INFO" "Network connection failed."	
 				## Downlaod from External Server
 				eval EXT_ALEXNET_BASE_MODEL="\${EXT_ALEXNET_BASE_MODEL_${RESOLUTION}}"
-				echo "Testing the Network connection to: ${EXT_ALEXNET_BASE_MODEL} ..."
+				DATE_PREFIX "INFO" "Testing the Network connection to: ${EXT_ALEXNET_BASE_MODEL} ..."
 				curl -L -I -s --connect-timeout ${TIMEOUT} ${EXT_ALEXNET_BASE_MODEL} -w %{http_code} | grep "HTTP/1.1 200" >> /dev/null 2>&1
 				if [[ $? ]]; then
-					echo "Network connection is OK!"
-					echo "Begin to download base model: ${BASE_MODEL} with resolution: ${RESOLUTION}x${RESOLUTION} from External server: ${EXT_ALEXNET_BASE_MODEL} ..."
+					DATE_PREFIX "INFO" "Network connection is OK!"
+					DATE_PREFIX "INFO" "Begin to download base model: ${BASE_MODEL} with resolution: ${RESOLUTION}x${RESOLUTION} from External server: ${EXT_ALEXNET_BASE_MODEL} ..."
 					if [[ ! -d ${TEMP_DATA_DIR}/models/ssd/AlexNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION} ]]; then
 						mkdir -p ${TEMP_DATA_DIR}/models/ssd/AlexNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}
 					fi
@@ -132,24 +137,24 @@ function DOWNLOAD_BASE_MODEL(){
 						mv ./ssd_alexnet/* ./
 						rm -fr ./ssd_alexnet/
 						cd -
-						echo "Download Done!"
-		                                echo "Base model have been saved to: ${TEMP_DATA_DIR}/models/ssd/AlexNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}"
-						echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
+						DATE_PREFIX "INFO" "Download Done!"
+		                                DATE_PREFIX "INFO" "Base model have been saved to: ${TEMP_DATA_DIR}/models/ssd/AlexNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}"
+						echo "****************************************************************"
 					else
-						echo "Download base model: ${BASE_MODEL} failed, possibly because of the network issue"
+						DATE_PREFIX "INFO" "Download base model: ${BASE_MODEL} failed, possibly because of the network issue"
 						exit 11
 					fi	
 				else
-					echo "Can not connect to Server: ${EXT_ALEXNET_BASE_MODEL}, download base model: ${BASE_MODEL} with resolution: ${RESOLUTION}x${RESOLUTION} failed! Please check and try again. Exiting..."
+					DATE_PREFIX "INFO" "Can not connect to Server: ${EXT_ALEXNET_BASE_MODEL}, download base model: ${BASE_MODEL} with resolution: ${RESOLUTION}x${RESOLUTION} failed! Please check and try again. Exiting..."
 					exit -9
 				fi
 			fi
 		else
-			echo ""Base model: ${BASE_MODEL} already exists in ${TEMP_DATA_DIR}/models/ssd/AlexNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}, will not download again!""
+			DATE_PREFIX "INFO" ""Base model: ${BASE_MODEL} already exists in ${TEMP_DATA_DIR}/models/ssd/AlexNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}, will not download again!""
 				
 		fi			
 	else
-		echo "Base model only support vgg16 or alexnet currently, exiting..."
+		DATE_PREFIX "INFO" "Base model only support vgg16 or alexnet currently, exiting..."
 		exit 10
 	fi
 }
@@ -159,12 +164,12 @@ function DOWNLOAD_PASCAL(){
 	DEST_DIR=$2 ## the dir to save the downloaded files
 	IS_INT=$3 ## Flag, is the server Internal or External? 0 represents Internal, 1 represents External. 
 
-	echo "Testing the Network connection to: ${SERVER} ..."
+	DATE_PREFIX "INFO" "Testing the Network connection to: ${SERVER} ..."
 	RET_CODE=`curl -L -I -s --connect-timeout ${TIMEOUT} ${SERVER} -w %{http_code} | tail -n1`
 	if [[ x${RET_CODE} == "x200" ]]; then
-		echo "Network connection is OK!"
+		DATE_PREFIX "INFO" "Network connection is OK!"
 		cd ${DEST_DIR}
-		echo "Begin to download ${DATA_SET} dataset from ${SERVER} ..."
+		DATE_PREFIX "INFO" "Begin to download ${DATA_SET} dataset from ${SERVER} ..."
 		if [[ x${IS_INT} == "x0" ]]; then
 			curl -OOO ${SERVER}/{VOCtest_06-Nov-2007.tar,VOCtrainval_06-Nov-2007.tar,VOCtrainval_11-May-2012.tar}
 		elif [[ x${IS_INT} == "x1" ]]; then
@@ -172,20 +177,20 @@ function DOWNLOAD_PASCAL(){
 			curl -O ${SERVER}/voc2007/VOCtrainval_06-Nov-2007.tar
 			curl -O ${SERVER}/voc2012/VOCtrainval_11-May-2012.tar
 		else
-			echo "The third Input can only be 0 or 1, 0 represents Internal server, 1 represents External server."
+			DATE_PREFIX "INFO" "The third Input can only be 0 or 1, 0 represents Internal server, 1 represents External server."
 			exit -2
 		fi
 	else
-                echo "Can not connect to Server: ${SERVER}, please check and try again."
+                DATE_PREFIX "INFO" "Can not connect to Server: ${SERVER}, please check and try again."
                 return -3
         fi
 
-	echo "Download Done!"
-	echo "Extracting the tar files..."
+	DATE_PREFIX "INFO" "Download Done!"
+	DATE_PREFIX "INFO" "Extracting the tar files..."
 	cat *.tar | tar -xvf - -i >> /dev/null 2>&1
         cd - >> /dev/null 2>&1
-        echo "Extract Done!"
-	echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
+        DATE_PREFIX "INFO" "Extract Done!"
+	echo "****************************************************************"
 }
 
 
@@ -194,12 +199,12 @@ function DOWNLOAD_COCO(){
         DEST_DIR=$2 ## the dir to save the downloaded files
         IS_INT=$3 ## Flag, is the server Internal or External? 0 represents Internal, 1 represents External.
 
-	echo "Testing the Network connection to: ${SERVER} ..."
+	DATE_PREFIX "INFO" "Testing the Network connection to: ${SERVER} ..."
         RET_CODE=`curl -L -I -s --connect-timeout ${TIMEOUT} ${SERVER} -w %{http_code} | tail -n1`
 	if [[ x${RET_CODE} == "x200" ]]; then
-		echo "Network connection is OK!"
+		DATE_PREFIX "INFO" "Network connection is OK!"
 	        cd ${DEST_DIR}
-	        echo "Begin to download ${DATA_SET} dataset from ${SERVER} ..."
+	        DATE_PREFIX "INFO" "Begin to download ${DATA_SET} dataset from ${SERVER} ..."
 		if [[ x${IS_INT} == "x0" ]]; then
 			## Get images
 			curl -OOOO ${SERVER}/{train2014.zip,val2014.zip,test2014.zip,test2015.zip}
@@ -215,45 +220,45 @@ function DOWNLOAD_COCO(){
 			curl -O http://www.cs.berkeley.edu/~rbg/faster-rcnn-data/instances_minival2014.json.zip
 			curl -O http://www.cs.berkeley.edu/~rbg/faster-rcnn-data/instances_valminusminival2014.json.zip
 		else
-	                echo "The third Input can only be 0 or 1, 0 represents Internal server, 1 represents External server."
+	                DATE_PREFIX "INFO" "The third Input can only be 0 or 1, 0 represents Internal server, 1 represents External server."
 	                exit -2
 	        fi
 	
 	else
-                echo "Can not connect to Server: ${SERVER}, please check and try again."
+                DATE_PREFIX "INFO" "Can not connect to Server: ${SERVER}, please check and try again."
                 return -3
         fi
 
-	echo "Download Done!"
-        echo "Extracting the zip files..."
+	DATE_PREFIX "INFO" "Download Done!"
+        DATE_PREFIX "INFO" "Extracting the zip files..."
 	unzip "*.zip" >> /dev/null 2>&1
-	echo "Extract Done!"
+	DATE_PREFIX "INFO" "Extract Done!"
 	mkdir images/
 	mv train2014/ val2014/ test2014/ test2015 images/
-	echo "Images have been moved to: ${DEST_DIR}/images"
+	DATE_PREFIX "INFO" "Images have been moved to: ${DEST_DIR}/images"
 	mv instances_minival2014.json annotations/
 	mv instances_valminusminival2014.json annotations/
-	echo "Annotations have been moved to: ${DEST_DIR}/annotations"
+	DATE_PREFIX "INFO" "Annotations have been moved to: ${DEST_DIR}/annotations"
         cd - >> /dev/null 2>&1
-	echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
+	echo "****************************************************************"
 }
 
 
 function COCO_SPLIT_ANNO(){
 ## Split Imageset and Annotations
 	if [[ "$#" -ne 1 ]] || ! [ -d "$1" ]; then
-		echo "Usage: $0 DIRECTORY"
+		DATE_PREFIX "INFO" "Usage: $0 DIRECTORY"
 		exit -5
 	fi
 	DATA_DIR=$1 ## coco dataset path
 	PY_BATCH_SPLIT=${CURRENT_DIR}/../data/coco/PythonAPI/scripts/batch_split_annotation.py
 	if [[ -f ${PY_BATCH_SPLIT} ]]; then
-		echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
-		echo "Calling Python script: ${PY_BATCH_SPLIT} ..."
+		echo "****************************************************************"
+		DATE_PREFIX "INFO" "Calling Python script: ${PY_BATCH_SPLIT} ..."
 		python ${PY_BATCH_SPLIT} ${DATA_DIR}
-		echo "Split annotations done!"
+		DATE_PREFIX "INFO" "Split annotations done!"
 	else
-		echo "Python script: ${PY_BATCH_SPLIT} does not exist, exiting..."
+		DATE_PREFIX "INFO" "Python script: ${PY_BATCH_SPLIT} does not exist, exiting..."
 		exit -6
 	fi
 }
@@ -264,101 +269,101 @@ function DOWNLOAD_DATA_SET(){
 	        ## Download and Extract PASCAL VOC dataset
 	        if [[ ! -d ${PASCAL_DATA_DIR}/VOCdevkit ]]; then
 			if [[ ! -d ${PASCAL_DATA_DIR} ]]; then
-				echo "Creating Directory: ${PASCAL_DATA_DIR} ..."
+				DATE_PREFIX "INFO" "Creating Directory: ${PASCAL_DATA_DIR} ..."
 	  			mkdir -p ${PASCAL_DATA_DIR}
 			fi
-			echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
-			echo "Will Download dataset: ${DATA_SET} ..."
+			echo "INFO" "****************************************************************"
+			DATE_PREFIX "INFO" "Will Download dataset: ${DATA_SET} ..."
 	                DOWNLOAD_PASCAL ${INT_PASCAL_SERVER} ${PASCAL_DATA_DIR} 0 ## From Internal Server
 	                if [[ $? != 0 ]]; then
 	                        DOWNLOAD_PASCAL ${EXT_PASCAL_SERVER} ${PASCAL_DATA_DIR} 1 ## From External Server
 				if [[ $? != 0 ]]; then
-                                        echo "DownLoad dataset: ${DATA_SET} from External Server: ${EXT_PASCAL_SERVER} failed, possibly because of the network issue"
+                                        DATE_PREFIX "INFO" "DownLoad dataset: ${DATA_SET} from External Server: ${EXT_PASCAL_SERVER} failed, possibly because of the network issue"
 					exit -3
 				fi
 	                fi
 	        else
-	                echo "Dataset ${DATA_SET} already exists in ${PASCAL_DATA_DIR}/VOCdevkit, will not download again."
+	                DATE_PREFIX "INFO" "Dataset ${DATA_SET} already exists in ${PASCAL_DATA_DIR}/VOCdevkit, will not download again."
 	        fi
 	elif [[ x${DATA_SET} == "xCOCO" ]]; then
 	        ## Download and Extract COCO dataset
 	        if [[ ! -d ${COCO_DATA_DIR}/images ]] || [[ ! -d ${COCO_DATA_DIR}/annotations ]]; then
 			if [[ ! -d ${COCO_DATA_DIR} ]]; then
-				echo "Creating Directory: ${COCO_DATA_DIR} ..."
+				DATE_PREFIX "INFO" "Creating Directory: ${COCO_DATA_DIR} ..."
 				mkdir -p ${COCO_DATA_DIR}
 			fi
-			echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
-			echo "Will Download dataset: ${DATA_SET} ..."
+			echo "****************************************************************"
+			DATE_PREFIX "INFO" "Will Download dataset: ${DATA_SET} ..."
 	                DOWNLOAD_COCO ${INT_COCO_SERVER} ${COCO_DATA_DIR} 0 ## From Internal Server
 	                if [[ $? != 0 ]]; then
 	                        DOWNLOAD_COCO ${EXT_COCO_SERVER} ${COCO_DATA_DIR} 1 ## From External Server
 				if [[ $? != 0 ]]; then
-					echo "DownLoad dataset: ${DATA_SET} from External Server: ${EXT_COCO_SERVER} failed, possibly because of the network issue"
+					DATE_PREFIX "INFO" "DownLoad dataset: ${DATA_SET} from External Server: ${EXT_COCO_SERVER} failed, possibly because of the network issue"
 					exit -3
 				fi
 	                fi
 	        else
-	                echo "Dataset ${DATA_SET} already exists in ${COCO_DATA_DIR}/images, will not download again."
+	                DATE_PREFIX "INFO" "Dataset ${DATA_SET} already exists in ${COCO_DATA_DIR}/images, will not download again."
 	        fi
 	        ## Split Imageset and Annotations
 		if [[ ! -d ${COCO_DATA_DIR}/Annotations ]]; then
 		        COCO_SPLIT_ANNO ${TEMP_DATA_DIR}
 		else
-			echo "Splited ${DATA_SET} annotations already exists in ${COCO_DATA_DIR}/Annotations, will not split again."
+			DATE_PREFIX "INFO" "Splited ${DATA_SET} annotations already exists in ${COCO_DATA_DIR}/Annotations, will not split again."
 		fi
 	else
-	        echo "Dataset only can be VOC0712 or COCO currently! Exiting..."
+	        DATE_PREFIX "INFO" "Dataset only can be VOC0712 or COCO currently! Exiting..."
 	        exit -4
 	fi
 }
 
 
 function CONVERT_SEQ(){
-	echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
+	echo "****************************************************************"
 	if [[ ! -f ${SSD_JARS_PATH} ]]; then
-		echo "No Local Executable SSD Jars available, will try to download it ..."
+		DATE_PREFIX "INFO" "No Local Executable SSD Jars available, will try to download it ..."
 		REMOTE_SSD_JAR="${INT_BASE_MODEL_SERVER}/jars/${SSD_JARS_NAME}"
-		echo "Testing the Network connection to: ${REMOTE_SSD_JAR} ..."
+		DATE_PREFIX "INFO" "Testing the Network connection to: ${REMOTE_SSD_JAR} ..."
 		RET_CODE=`curl -L -I -s --connect-timeout ${TIMEOUT} ${REMOTE_SSD_JAR} -w %{http_code} | tail -n1`
 		if [[ x${RET_CODE} == "x200" ]]; then
-			echo "Network connection is OK!"	
-			echo "Begin to download Executable SSD Jars ..."
+			DATE_PREFIX "INFO" "Network connection is OK!"	
+			DATE_PREFIX "INFO" "Begin to download Executable SSD Jars ..."
 			if [[ ! -d ${TEMP_DATA_DIR}/models/ssd/jars ]]; then
 				mkdir -p ${TEMP_DATA_DIR}/models/ssd/jars
 			fi
 			cd ${TEMP_DATA_DIR}/models/ssd/jars
 			curl -O ${REMOTE_SSD_JAR}
 			cd - >> /dev/null 2>&1
-			echo "Download Done!"
-			echo "Executable SSD Jars have been saved to: ${SSD_JARS_PATH}"
-			echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
+			DATE_PREFIX "INFO" "Download Done!"
+			DATE_PREFIX "INFO" "Executable SSD Jars have been saved to: ${SSD_JARS_PATH}"
+			echo "****************************************************************"
 		else
-			echo "Network connection failed. Please build the SSD first."
+			DATE_PREFIX "INFO" "Network connection failed. Please build the SSD first."
 			
 		fi
 	fi
 	if [[ x${DATA_SET} == "xVOC0712" ]]; then
-		echo "Begin to convert ${DATA_SET} test data ..."
+		DATE_PREFIX "INFO" "Begin to convert ${DATA_SET} test data ..."
 		rm -fr ${PASCAL_DATA_DIR}/seq/
 		java -cp ${SSD_JARS_PATH} com.intel.analytics.zoo.pipeline.common.dataset.RoiImageSeqGenerator -f ${PASCAL_DATA_DIR}/VOCdevkit -o ${PASCAL_DATA_DIR}/seq/test -i voc_2007_test -p ${TOTAL_CORES} >> /dev/null 2>&1
 		rm -fr ${PASCAL_DATA_DIR}/seq/test/.*crc
-		echo "Convert done."
-		echo "Begin to convert ${DATA_SET} train data ..."
+		DATE_PREFIX "INFO" "Convert done."
+		DATE_PREFIX "INFO" "Begin to convert ${DATA_SET} train data ..."
 		java -cp ${SSD_JARS_PATH} com.intel.analytics.zoo.pipeline.common.dataset.RoiImageSeqGenerator -f ${PASCAL_DATA_DIR}/VOCdevkit -o ${PASCAL_DATA_DIR}/seq/train -i voc_2007_trainval -p ${TOTAL_CORES} >> /dev/null 2>&1
 		rm -fr ${PASCAL_DATA_DIR}/seq/train/.*crc
-		echo "Convert done."
+		DATE_PREFIX "INFO" "Convert done."
 
 		COPY_TO_HDFS ${PASCAL_DATA_DIR}/seq ${HDFS_PASCAL_DIR}
        	elif [[ x${DATA_SET} == "xCOCO" ]]; then
-		echo "Begin to convert ${DATA_SET} minival data ..."
+		DATE_PREFIX "INFO" "Begin to convert ${DATA_SET} minival data ..."
 		rm -fr ${COCO_DATA_DIR}/seq/
 		java -cp ${SSD_JARS_PATH} com.intel.analytics.zoo.pipeline.common.dataset.RoiImageSeqGenerator -f ${COCO_DATA_DIR} -o ${COCO_DATA_DIR}/seq/coco-minival -i coco_minival2014 -p ${TOTAL_CORES}
 		rm -fr ${COCO_DATA_DIR}/seq/coco-minival/.*crc
-		echo "Convert done."
+		DATE_PREFIX "INFO" "Convert done."
 
 		COPY_TO_HDFS ${COCO_DATA_DIR}/seq ${HDFS_COCO_DIR}
        	else
-               	echo "Dataset only can be VOC0712 or COCO currently! Exiting..."
+               	DATE_PREFIX "INFO" "Dataset only can be VOC0712 or COCO currently! Exiting..."
                	exit -11
        	fi	
 }
@@ -368,34 +373,34 @@ function COPY_TO_HDFS(){
 	DEST_HDFS=$2
 
 	if [[ ! -d ${SRC_DIR} ]] || [[ "`ls -A ${SRC_DIR}`" == "" ]]; then
-		echo "Source dir: ${SRC_DIR} does not exist or is empty, exiting ..."
+		DATE_PREFIX "INFO" "Source dir: ${SRC_DIR} does not exist or is empty, exiting ..."
 		exit -12
 	fi
 
 	if [[ x${IS_HDFS} == "xtrue" ]]; then
-		echo "Will transfer the source data from LOCAL: ${SRC_DIR} to HDFS: ${DEST_HDFS} ..."
+		DATE_PREFIX "INFO" "Will transfer the source data from LOCAL: ${SRC_DIR} to HDFS: ${DEST_HDFS} ..."
 		hdfs dfs -ls ${DEST_HDFS} >> /dev/null  2>&1
 		if [[ ! $? == "0" ]]; then ## if dir not exists on HDFS
-			echo "Creating HDFS dir: ${DEST_HDFS} ..."
+			DATE_PREFIX "INFO" "Creating HDFS dir: ${DEST_HDFS} ..."
 			hdfs dfs -mkdir -p ${DEST_HDFS}
-			echo "Create done!"
+			DATE_PREFIX "INFO" "Create done!"
 		fi
 		hdfs dfs -rm -r -skipTrash ${DEST_HDFS}/* >> /dev/null  2>&1 ## delete if there's previous files
-		echo "Transfering the data ..."
+		DATE_PREFIX "INFO" "Transfering the data ..."
 		hdfs dfs -put ${SRC_DIR} ${DEST_HDFS}
 		if [[ $? == "0" ]]; then 
-			echo "Transfer Done!"
+			DATE_PREFIX "INFO" "Transfer Done!"
 		else
-			echo "Transfer finished with some error..."
+			DATE_PREFIX "INFO" "Transfer finished with some error..."
 		fi
 	elif [[ x${IS_HDFS} == "xfalse" ]]; then
-		echo "Warning: you have chosen to use source data from local disks, so if there're multi nodes in your cluster, you need copy the source data to the same dir of each node first."
-		echo "Warning: You may need below command: "
-		echo "Warning: pssh -h SLAVES -i mkdir -p ${SRC_DIR}"
-		echo "Warning: pscp -h SLAVES -r ${SRC_DIR} ${SRC_DIR}/../"
+		DATE_PREFIX "INFO" "Warning: you have chosen to use source data from local disks, so if there're multi nodes in your cluster, you need copy the source data to the same dir of each node first."
+		DATE_PREFIX "INFO" "Warning: You may need below command: "
+		DATE_PREFIX "INFO" "Warning: pssh -h SLAVES -i mkdir -p ${SRC_DIR}"
+		DATE_PREFIX "INFO" "Warning: pscp -h SLAVES -r ${SRC_DIR} ${SRC_DIR}/../"
 		exit -13
 	else
-		echo "IS_HDFS can only be true or false."
+		DATE_PREFIX "INFO" "IS_HDFS can only be true or false."
 		exit -14
 	fi
 }

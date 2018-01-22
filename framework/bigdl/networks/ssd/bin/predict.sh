@@ -2,18 +2,27 @@
 
 CURRENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+## Import functions
+if test -z ${DLBENCHMARK_FUNCS}; then
+	DLBENCHMARK_FUNCS=${CURRENT_DIR}/../../../../../scripts/function.sh
+fi
+if [[ ! -x ${DLBENCHMARK_FUNCS} ]]; then
+	chmod +x ${DLBENCHMARK_FUNCS}
+fi
+source ${DLBENCHMARK_FUNCS}
+
 CLASS=com.intel.analytics.zoo.pipeline.ssd.example.Predict
 
 LOCAL_CONF_FILE=${CURRENT_DIR}/../conf/localSetting.conf
 
-echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
-echo "Loading Local Configuration file from: ${LOCAL_CONF_FILE}..."
+echo "****************************************************************"
+DATE_PREFIX "INFO" "Loading Local Configuration file from: ${LOCAL_CONF_FILE}..."
 source "${LOCAL_CONF_FILE}"
 
 if [[ -f "${SSD_JARS_PATH}" ]]; then
-        echo "Will use executable jar file: ${SSD_JARS_PATH}"
+        DATE_PREFIX "INFO"  "Will use executable jar file: ${SSD_JARS_PATH}"
 else
-        echo "Executable jar file does not exist, you may need to build the project first! Exiting..."
+        DATE_PREFIX "ERROR"  "Executable jar file does not exist, you may need to build the project first! Exiting..."
         exit -1
 fi
 
@@ -33,12 +42,12 @@ if [[ ${BASE_MODEL} == "vgg16" ]]; then
 	CLASSNAME=${SSD_MODEL_HOME}/VGGNet/${DATA_SET}/classname.txt
 	CAFFEDEF=${SSD_MODEL_HOME}/VGGNet/${DATA_SET}/SSD_${IMAGE_RESOLUTION}x${IMAGE_RESOLUTION}/test.prototxt
 	CAFFEMODEL=${SSD_MODEL_HOME}/VGGNet/${DATA_SET}/SSD_${IMAGE_RESOLUTION}x${IMAGE_RESOLUTION}/VGG_VOC0712_SSD_${IMAGE_RESOLUTION}x${IMAGE_RESOLUTION}_iter_120000.caffemodel
-	echo "SSD_MODEL_HOME is: ${SSD_MODEL_HOME}/VGGNet/${DATA_SET}/"
+	DATE_PREFIX "INFO"  "SSD_MODEL_HOME is: ${SSD_MODEL_HOME}/VGGNet/${DATA_SET}/"
 elif [[ ${BASE_MODEL} == "alexnet" ]]; then
 	CLASSNAME=${SSD_MODEL_HOME}/AlexNet/classname.txt
 	CAFFEDEF=${SSD_MODEL_HOME}/AlexNet/deploy.prototxt
 	CAFFEMODEL=${SSD_MODEL_HOME}/AlexNet/ALEXNET_JDLOGO_V4_SSD_${IMAGE_RESOLUTION}x${IMAGE_RESOLUTION}_iter_920.caffemodel
-	echo "SSD_MODEL_HOME is: ${SSD_MODEL_HOME}/AlexNet/"
+	DATE_PREFIX "INFO"  "SSD_MODEL_HOME is: ${SSD_MODEL_HOME}/AlexNet/"
 fi
 
 if [[ x${IS_HDFS} == "xtrue" ]]; then
@@ -55,13 +64,13 @@ elif [[ x${IS_HDFS} == "xfalse" ]]; then
 	fi
 fi
 
-echo "Sequence data dir is: ${SEQ_DATA_DIR}"
-echo "BASE_MODEL is: ${BASE_MODEL}"
-echo "DATA_SET is: ${DATA_SET}"
+DATE_PREFIX "INFO"  "Sequence data dir is: ${SEQ_DATA_DIR}"
+DATE_PREFIX "INFO"  "BASE_MODEL is: ${BASE_MODEL}"
+DATE_PREFIX "INFO"  "DATA_SET is: ${DATA_SET}"
 
-echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
+echo "****************************************************************"
 date > ${LOCAL_LOG_DIR}/${LOCAL_LOG_FILE}
-echo "
+DATE_PREFIX "INFO" "
 spark-submit \
   --master ${SPARK_MASTER} \
   --executor-cores ${EXECUTOR_CORES} \
@@ -83,7 +92,7 @@ spark-submit \
   -q ${IS_QUANT_ENABLE}
 " | tee -a ${LOCAL_LOG_DIR}/${LOCAL_LOG_FILE}
 
-echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
+echo "****************************************************************"
 
 time spark-submit \
   --master ${SPARK_MASTER} \
