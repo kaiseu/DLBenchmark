@@ -26,12 +26,12 @@ function CHECK_EXIST_EXEC(){
 }
 
 function SEQ_DATASET_REPLICA(){
-	ORG_DATASET_DIR=$1
-	DATA_REPLICA=$2
+	local ORG_DATASET_DIR=$1
+	local DATA_REPLICA=$2
 
 	SUFFIX=".seq"
 
-	ORG_SIZE=`du ${ORG_DATASET_DIR} | awk -F " " '{ print $1 }'`
+	ORG_SIZE=`du -c ${ORG_DATASET_DIR} | grep "total" | awk -F " " '{ print $1 }'`
 	EST_SIZE=$(( ORG_SIZE * DATA_REPLICA / 1024 ))
 	DATE_PREFIX "INFO" "Original dataset is about $((ORG_SIZE/1024)) MB, with replica ${DATA_REPLICA}, it will take about ${EST_SIZE} MB disk space."
 	DATE_PREFIX "INFO" "Creating dataset replica ..."
@@ -39,11 +39,15 @@ function SEQ_DATASET_REPLICA(){
 	
 	for line in `ls -A ${ORG_DATASET_DIR}`
 	do
-		for (( i=1;i<$DATA_REPLICA;i++ ));
-		do
-			NEW_NAME="`echo ${line} | awk 'BEGIN{FS=OFS="."}{$NF=""; NF--; print}'`_${i}${SUFFIX}"
-			cp -r ${ORG_DATASET_DIR}/${line} ${ORG_DATASET_DIR}/${NEW_NAME}
-		done
+		if [[ -f ${ORG_DATASET_DIR}/${line} ]]; then ## process file
+			for (( i=1;i<$DATA_REPLICA;i++ ));
+			do
+				NEW_NAME="`echo ${line} | awk 'BEGIN{FS=OFS="."}{$NF=""; NF--; print}'`_${i}${SUFFIX}"
+				cp -r ${ORG_DATASET_DIR}/${line} ${ORG_DATASET_DIR}/${NEW_NAME}
+			done
+		elif [[ -d ${ORG_DATASET_DIR}/${line} ]]; then ## process dir recursively
+			SEQ_DATASET_REPLICA ${ORG_DATASET_DIR}/${line} ${DATA_REPLICA}
+		fi
 	done
 
 	DATE_PREFIX "INFO" "Creating done!"
