@@ -353,6 +353,7 @@ function CONVERT_SEQ(){
 		rm -fr ${PASCAL_DATA_DIR}/seq/train/.*crc
 		DATE_PREFIX "INFO" "Convert done."
 
+		SEQ_DATASET_REPLICA ${PASCAL_DATA_DIR}/seq ${DATA_REPLICA} 
 		COPY_TO_HDFS ${PASCAL_DATA_DIR}/seq ${HDFS_PASCAL_DIR}
        	elif [[ x${DATA_SET} == "xCOCO" ]]; then
 		DATE_PREFIX "INFO" "Begin to convert ${DATA_SET} minival data ..."
@@ -361,6 +362,7 @@ function CONVERT_SEQ(){
 		rm -fr ${COCO_DATA_DIR}/seq/coco-minival/.*crc
 		DATE_PREFIX "INFO" "Convert done."
 
+		SEQ_DATASET_REPLICA ${COCO_DATA_DIR}/seq ${DATA_REPLICA}
 		COPY_TO_HDFS ${COCO_DATA_DIR}/seq ${HDFS_COCO_DIR}
        	else
                	DATE_PREFIX "INFO" "Dataset only can be VOC0712 or COCO currently! Exiting..."
