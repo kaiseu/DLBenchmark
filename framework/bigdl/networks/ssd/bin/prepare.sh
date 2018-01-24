@@ -27,6 +27,9 @@ fi
 INT_PASCAL_SERVER="bdpa-gateway.sh.intel.com:8088/dlbenchmark/dataset/PASCAL/"
 INT_COCO_SERVER="bdpa-gateway.sh.intel.com:8088/dlbenchmark/dataset/COCO/"
 INT_BASE_MODEL_SERVER="bdpa-gateway.sh.intel.com:8088/dlbenchmark/models/ssd"
+INT_BASE_MODEL_SERVER_CAFFE=${INT_BASE_MODEL_SERVER}/base_model/caffe
+INT_BASE_MODEL_SERVER_BIGDL=${INT_BASE_MODEL_SERVER}/base_model/bigdl
+EXT_BASE_MODEL_SERVER_BIGDL="https://s3-ap-southeast-1.amazonaws.com/bigdl-models/object-detection"
 EXT_PASCAL_SERVER="http://host.robots.ox.ac.uk/pascal/VOC/"
 EXT_COCO_SERVER="http://images.cocodataset.org/zips/"
 EXT_VGG_BASE_MODEL_300="https://doc-0o-30-docs.googleusercontent.com/docs/securesc/ha0ro937gcuc7l7deffksulhg5h7mbp1/4vekjv3i84tfbagshmm8fhibbemagvbk/1515369600000/09260862254863227534/*/0BzKzrI_SkD1_WVVTSmQxU0dVRzA?e=download"
@@ -34,34 +37,105 @@ EXT_VGG_BASE_MODEL_512="https://doc-0s-30-docs.googleusercontent.com/docs/secure
 EXT_ALEXNET_BASE_MODEL_300="https://storage.googleapis.com/drive-bulk-export-anonymous/20180108T064845Z/4133399871716478688/6e39bd56-ef20-422d-b7a6-ec6eed6ed5a4/1/a9eb60b0-f7f2-41a5-bc3f-a825ae0e6f16?authuser"
 PASCAL_DATA_DIR="${TEMP_DATA_DIR}/data/PASCAL"
 COCO_DATA_DIR="${TEMP_DATA_DIR}/data/COCO"
+TEMP_SSD_MODEL_DIR=${TEMP_DATA_DIR}/models/ssd
 TIMEOUT="5"
+
+## Download BigDL base model
+function DOWNLOAD_BIGDL_MODEL(){
+	BigDL_VERSION="0.4.0"
+	Usage="Usage: DOWNLOAD_BIGDL_MODEL [-N <Network>] [-R <300|512>] [-Q <true|false>] [-D <COCO|PASCAL>]"
+	while getopts ":N:R:Q:D:" opt; do
+		case "${opt}" in
+		N)
+			NETWORK=${OPTARG}
+			;;
+		R)
+			RESOLUTION=${OPTARG}
+			;;
+		Q)
+			QUANTIZE=${OPTARG}
+			;;
+		D)
+			DATASET=${OPTARG}
+			;;
+		*)
+			echo ${Usage}
+			;;
+		esac
+	done
+	shift $(( OPTIND-1))
+	if [[ ${QUANTIZE} == "true" ]]; then
+		QUANTIZE="-quantize"
+	else
+		QUANTIZE=""
+	fi
+       
+	MODEL_NAME="bigdl_ssd-${NETWORK}-${RESOLUTION}x${RESOLUTION}${QUANTIZE}_${DATASET}_${BigDL_VERSION}.model"
+	MODEL_PATH=${INT_BASE_MODEL_SERVER_BIGDL}/${MODEL_NAME}
+	
+	echo "****************************************************************"
+	if [[ -f ${TEMP_SSD_MODEL_DIR}/bigdl/${MODEL_NAME} ]]; then
+		DATE_PREFIX "INFO" "Base model: ${MODEL_NAME} already exists in ${TEMP_SSD_MODEL_DIR}/bigdl, will not download again!"
+	else	
+		DATE_PREFIX "INFO" "Testing the Network connection to: ${MODEL_PATH} ..."
+		RET_CODE=`curl -L -I -s --connect-timeout ${TIMEOUT} ${MODEL_PATH} -w %{http_code} | tail -n1`
+		if [[ x${RET_CODE} == "x200" ]]; then
+			DATE_PREFIX "INFO" "Network connection is OK!"
+			DATE_PREFIX "INFO" "Begin to download base model: ${MODEL_NAME} from Internal server: ${INT_BASE_MODEL_SERVER_BIGDL} ..."
+			if [[ ! -d ${TEMP_SSD_MODEL_DIR}/bigdl ]]; then
+				mkdir -p  ${TEMP_SSD_MODEL_DIR}/bigdl
+			fi
+			cd ${TEMP_SSD_MODEL_DIR}/bigdl
+			curl -O ${MODEL_PATH}
+			cd - >> /dev/null 2>&1
+			DATE_PREFIX "INFO" "Download Done!"
+			DATE_PREFIX "INFO" "Base model have been saved to: ${TEMP_SSD_MODEL_DIR}/bigdl"
+		else
+			DATE_PREFIX "INFO" "Network connection failed." 
+			MODEL_PATH=${EXT_BASE_MODEL_SERVER_BIGDL}/${MODEL_NAME}	
+			DATE_PREFIX "INFO" "Testing the Network connection to: ${MODEL_PATH} ..."
+			RET_CODE=`curl -L -I -s --connect-timeout ${TIMEOUT} ${MODEL_PATH} -w %{http_code} | tail -n1`
+			if [[ x${RET_CODE} == "x200" ]]; then
+				DATE_PREFIX "INFO" "Network connection is OK!"
+				DATE_PREFIX "INFO" "Begin to download base model: ${MODEL_NAME} from external server: ${EXT_BASE_MODEL_SERVER_BIGDL} ..."
+				cd ${TEMP_SSD_MODEL_DIR}/bigdl
+				curl -O ${MODEL_PATH}
+				cd - >> /dev/null 2>&1
+				DATE_PREFIX "INFO" "Download Done!"
+				DATE_PREFIX "INFO" "Base model have been saved to: ${TEMP_SSD_MODEL_DIR}/bigdl"
+			else
+				DATE_PREFIX "ERROR" "Download base model: ${MODEL_NAME} failed, possibly because of the network issue"
+				exit -13
+			fi
+		fi
+	fi		
+}
 
 
 ## Downlaod Base Models Based on Local Configurations
-function DOWNLOAD_BASE_MODEL(){
+function DOWNLOAD_CAFFE_MODEL(){
 	RESOLUTION=${IMAGE_RESOLUTION}
 	if [[ x${BASE_MODEL} == "xvgg16" ]]; then
-		if [[ ! -f ${TEMP_DATA_DIR}/models/ssd/VGGNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}/VGG_VOC0712_SSD_${RESOLUTION}x${RESOLUTION}_iter_120000.caffemodel ]] || [[ ! -f ${TEMP_DATA_DIR}/models/ssd/VGGNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}/test.prototxt ]]; then
+		if [[ ! -f ${TEMP_SSD_MODEL_DIR}/caffe/VGGNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}/VGG_VOC0712_SSD_${RESOLUTION}x${RESOLUTION}_iter_120000.caffemodel ]] || [[ ! -f ${TEMP_SSD_MODEL_DIR}/caffe/VGGNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}/test.prototxt ]]; then
 			## Downlaod from Internal Server
-			INT_VGG_BASE_MODEL="${INT_BASE_MODEL_SERVER}/VGGNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}"
+			INT_VGG_BASE_MODEL="${INT_BASE_MODEL_SERVER_CAFFE}/VGGNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}"
 			echo "****************************************************************"
 			DATE_PREFIX "INFO" "Testing the Network connection to: ${INT_VGG_BASE_MODEL} ..."
 			RET_CODE=`curl -L -I -s --connect-timeout ${TIMEOUT} ${INT_VGG_BASE_MODEL} -w %{http_code} | tail -n1`
 			if [[ x${RET_CODE} == "x200" ]]; then
 				DATE_PREFIX "INFO" "Network connection is OK!"	
 				DATE_PREFIX "INFO" "Begin to download base model: ${BASE_MODEL} with resolution: ${RESOLUTION}x${RESOLUTION} from Internal server: ${INT_VGG_BASE_MODEL} ..."
-				if [[ ! -d ${TEMP_DATA_DIR}/models/ssd/VGGNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION} ]]; then
-					mkdir -p ${TEMP_DATA_DIR}/models/ssd/VGGNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}
+				if [[ ! -d ${TEMP_SSD_MODEL_DIR}/caffe/VGGNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION} ]]; then
+					mkdir -p ${TEMP_SSD_MODEL_DIR}/caffe/VGGNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}
 				fi
-				cd ${TEMP_DATA_DIR}/models/ssd/VGGNet/${DATA_SET}/
-				curl -O ${INT_BASE_MODEL_SERVER}/VGGNet/${DATA_SET}/classname.txt
+				cd ${TEMP_SSD_MODEL_DIR}/caffe/VGGNet/${DATA_SET}/
+				curl -O ${INT_BASE_MODEL_SERVER_CAFFE}/VGGNet/${DATA_SET}/classname.txt
 				cd - >> /dev/null 2>&1
-				cd ${TEMP_DATA_DIR}/models/ssd/VGGNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}/
-				curl -OO ${INT_BASE_MODEL_SERVER}/VGGNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}/{test.prototxt,VGG_VOC0712_SSD_${RESOLUTION}x${RESOLUTION}_iter_120000.caffemodel}
+				cd ${TEMP_SSD_MODEL_DIR}/caffe/VGGNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}/
+				curl -OO ${INT_BASE_MODEL_SERVER_CAFFE}/VGGNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}/{test.prototxt,VGG_VOC0712_SSD_${RESOLUTION}x${RESOLUTION}_iter_120000.caffemodel}
 				cd - >> /dev/null 2>&1
 				DATE_PREFIX "INFO" "Download Done!"
-				DATE_PREFIX "INFO" "Base model have been saved to: ${TEMP_DATA_DIR}/models/ssd/VGGNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}"
-				echo "****************************************************************"
+				DATE_PREFIX "INFO" "Base model have been saved to: ${TEMP_SSD_MODEL_DIR}/caffe/VGGNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}"
 			else
 				DATE_PREFIX "INFO" "Network connection failed."
 				## Downlaod from External Server, Only support dataset VOC0712
@@ -71,19 +145,18 @@ function DOWNLOAD_BASE_MODEL(){
 				if [[ $? ]]; then
 					DATE_PREFIX "INFO" "Network connection is OK!"
 					DATE_PREFIX "INFO" "Begin to download base model: ${BASE_MODEL} with resolution: ${RESOLUTION}x${RESOLUTION} from External server: ${EXT_VGG_BASE_MODEL} ..."
-					if [[ ! -d ${TEMP_DATA_DIR}/models/ssd/ ]]; then
-						mkdir -p ${TEMP_DATA_DIR}/models/ssd/
+					if [[ ! -d ${TEMP_SSD_MODEL_DIR}/caffe ]]; then
+						mkdir -p ${TEMP_SSD_MODEL_DIR}/caffe
 					fi
-					wget ${EXT_VGG_BASE_MODEL} -O ${TEMP_DATA_DIR}/models/ssd/models_VGGNet_VOC0712_SSD_${RESOLUTION}x${RESOLUTION}.tar.gz
+					wget ${EXT_VGG_BASE_MODEL} -O ${TEMP_SSD_MODEL_DIR}/caffe/models_VGGNet_VOC0712_SSD_${RESOLUTION}x${RESOLUTION}.tar.gz
 					if [[ $? == 0 ]]; then
-						tar xvf ${TEMP_DATA_DIR}/models/ssd/models_VGGNet_VOC0712_SSD_${RESOLUTION}x${RESOLUTION}.tar.gz -C ${TEMP_DATA_DIR}/models/ssd/ >> /dev/null 2>&1
-						mv ${TEMP_DATA_DIR}/models/ssd/models/VGGNet/ ${TEMP_DATA_DIR}/models/ssd/
-						rm -fr ${TEMP_DATA_DIR}/models/ssd/models/
+						tar xvf ${TEMP_SSD_MODEL_DIR}/caffe/models_VGGNet_VOC0712_SSD_${RESOLUTION}x${RESOLUTION}.tar.gz -C ${TEMP_SSD_MODEL_DIR}/caffe >> /dev/null 2>&1
+						mv ${TEMP_SSD_MODEL_DIR}/caffe/models/VGGNet/ ${TEMP_SSD_MODEL_DIR}/caffe
+						rm -fr ${TEMP_SSD_MODEL_DIR}/caffe/models/
 						DATE_PREFIX "INFO" "Download Done!"
-						DATE_PREFIX "INFO" "Base model have been saved to: ${TEMP_DATA_DIR}/models/ssd/VGGNet/VOC0712/SSD_${RESOLUTION}x${RESOLUTION}"
-						echo "****************************************************************"
+						DATE_PREFIX "INFO" "Base model have been saved to: ${TEMP_SSD_MODEL_DIR}/caffe/VGGNet/VOC0712/SSD_${RESOLUTION}x${RESOLUTION}"
 					else
-						DATE_PREFIX "INFO" "Download base model: ${BASE_MODEL} failed, possibly because of the network issue"
+						DATE_PREFIX "ERROR" "Download base model: ${BASE_MODEL} failed, possibly because of the network issue"
 						exit -10
 					fi
 				else
@@ -92,23 +165,23 @@ function DOWNLOAD_BASE_MODEL(){
 				fi
 			fi
 		else
-			DATE_PREFIX "INFO" "Base model: ${BASE_MODEL} already exists in ${TEMP_DATA_DIR}/models/ssd/VGGNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}, will not download again!"
+			DATE_PREFIX "INFO" "Base model: ${BASE_MODEL} already exists in ${TEMP_SSD_MODEL_DIR}/caffe/VGGNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}, will not download again!"
 		fi
 	elif [[ x${BASE_MODEL} == "xalexnet" ]]; then
-		if [[ ! -f ${TEMP_DATA_DIR}/models/ssd/AlexNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}/ALEXNET_JDLOGO_V4_SSD_${RESOLUTION}x${RESOLUTION}_iter_920.caffemodel ]] || [[ ! -f ${TEMP_DATA_DIR}/models/ssd/AlexNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}/deploy.prototxt ]] || [[ ! -f ${TEMP_DATA_DIR}/models/ssd/AlexNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}/classname.txt ]]; then
+		if [[ ! -f ${TEMP_SSD_MODEL_DIR}/caffe/AlexNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}/ALEXNET_JDLOGO_V4_SSD_${RESOLUTION}x${RESOLUTION}_iter_920.caffemodel ]] || [[ ! -f ${TEMP_SSD_MODEL_DIR}/caffe/AlexNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}/deploy.prototxt ]] || [[ ! -f ${TEMP_SSD_MODEL_DIR}/caffe/AlexNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}/classname.txt ]]; then
 			if [[ ! x${RESOLUTION} == "x300" ]]; then
                                         DATE_PREFIX "INFO" "Only support ${BASE_MODEL} with resolution: 300x300 currently! Exiting..."
                                         exit -8
                         fi
 			## Downlaod from Internal Server
-			INT_ALEX_BASE_MODEL=${INT_BASE_MODEL_SERVER}/AlexNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}
+			INT_ALEX_BASE_MODEL=${INT_BASE_MODEL_SERVER_CAFFE}/AlexNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}
 			echo "****************************************************************"
 			DATE_PREFIX "INFO" "Testing the Network connection to: ${INT_ALEX_BASE_MODEL} ..."	
 			RET_CODE=`curl -L -I -s --connect-timeout ${TIMEOUT} ${INT_ALEX_BASE_MODEL} -w %{http_code} | tail -n1`
 			if [[ x${RET_CODE} == "x200" ]]; then
 				DATE_PREFIX "INFO" "Network connection is OK!"	
 				DATE_PREFIX "INFO" "Begin to download base model: ${BASE_MODEL} with resolution: ${RESOLUTION}x${RESOLUTION} from Internal server: ${INT_ALEX_BASE_MODEL} ..."
-				ALEX_BASE_MODEL_DIR=${TEMP_DATA_DIR}/models/ssd/AlexNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}
+				ALEX_BASE_MODEL_DIR=${TEMP_SSD_MODEL_DIR}/caffe/AlexNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}
 				if [[ ! -d ${ALEX_BASE_MODEL_DIR} ]]; then
 					mkdir -p ${ALEX_BASE_MODEL_DIR}
 				fi
@@ -116,8 +189,7 @@ function DOWNLOAD_BASE_MODEL(){
 				curl -OOO ${INT_ALEX_BASE_MODEL}/{ALEXNET_JDLOGO_V4_SSD_300x300_iter_920.caffemodel,deploy.prototxt,classname.txt}
 				cd - >> /dev/null 2>&1
 				DATE_PREFIX "INFO" "Download Done!"
-				DATE_PREFIX "INFO" "Base model have been saved to: ${TEMP_DATA_DIR}/models/ssd/AlexNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}"
-				echo "****************************************************************"
+				DATE_PREFIX "INFO" "Base model have been saved to: ${TEMP_SSD_MODEL_DIR}/caffe/AlexNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}"
 			else
 				DATE_PREFIX "INFO" "Network connection failed."	
 				## Downlaod from External Server
@@ -127,19 +199,18 @@ function DOWNLOAD_BASE_MODEL(){
 				if [[ $? ]]; then
 					DATE_PREFIX "INFO" "Network connection is OK!"
 					DATE_PREFIX "INFO" "Begin to download base model: ${BASE_MODEL} with resolution: ${RESOLUTION}x${RESOLUTION} from External server: ${EXT_ALEXNET_BASE_MODEL} ..."
-					if [[ ! -d ${TEMP_DATA_DIR}/models/ssd/AlexNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION} ]]; then
-						mkdir -p ${TEMP_DATA_DIR}/models/ssd/AlexNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}
+					if [[ ! -d ${TEMP_SSD_MODEL_DIR}/caffe/AlexNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION} ]]; then
+						mkdir -p ${TEMP_SSD_MODEL_DIR}/caffe/AlexNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}
 					fi
-					wget ${EXT_ALEXNET_BASE_MODEL} -O ${TEMP_DATA_DIR}/models/ssd/AlexNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}/models_ALEXNet_${DATA_SET}_SSD_${RESOLUTION}x${RESOLUTION}.zip
+					wget ${EXT_ALEXNET_BASE_MODEL} -O ${TEMP_SSD_MODEL_DIR}/caffe/AlexNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}/models_ALEXNet_${DATA_SET}_SSD_${RESOLUTION}x${RESOLUTION}.zip
 					if [[ $? == 0 ]]; then
-						cd ${TEMP_DATA_DIR}/models/ssd/AlexNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}
+						cd ${TEMP_SSD_MODEL_DIR}/caffe/AlexNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}
 						unzip models_ALEXNet_${DATA_SET}_SSD_${RESOLUTION}x${RESOLUTION}.zip >> /dev/null 2>&1
 						mv ./ssd_alexnet/* ./
 						rm -fr ./ssd_alexnet/
 						cd -
 						DATE_PREFIX "INFO" "Download Done!"
-		                                DATE_PREFIX "INFO" "Base model have been saved to: ${TEMP_DATA_DIR}/models/ssd/AlexNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}"
-						echo "****************************************************************"
+		                                DATE_PREFIX "INFO" "Base model have been saved to: ${TEMP_SSD_MODEL_DIR}/caffe/AlexNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}"
 					else
 						DATE_PREFIX "INFO" "Download base model: ${BASE_MODEL} failed, possibly because of the network issue"
 						exit 11
@@ -150,7 +221,7 @@ function DOWNLOAD_BASE_MODEL(){
 				fi
 			fi
 		else
-			DATE_PREFIX "INFO" ""Base model: ${BASE_MODEL} already exists in ${TEMP_DATA_DIR}/models/ssd/AlexNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}, will not download again!""
+			DATE_PREFIX "INFO" ""Base model: ${BASE_MODEL} already exists in ${TEMP_SSD_MODEL_DIR}/caffe/AlexNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}, will not download again!""
 				
 		fi			
 	else
@@ -409,6 +480,7 @@ function COPY_TO_HDFS(){
 
 ## Start from here
 
-DOWNLOAD_DATA_SET
-CONVERT_SEQ
-DOWNLOAD_BASE_MODEL 
+#DOWNLOAD_DATA_SET
+#CONVERT_SEQ
+#DOWNLOAD_CAFFE_MODEL 
+DOWNLOAD_BIGDL_MODEL -N vgg16 -R 300 -Q true -D COCO
