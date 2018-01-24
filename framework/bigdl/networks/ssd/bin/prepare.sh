@@ -42,7 +42,6 @@ TIMEOUT="5"
 
 ## Download BigDL base model
 function DOWNLOAD_BIGDL_MODEL(){
-	BigDL_VERSION="0.4.0"
 	Usage="Usage: DOWNLOAD_BIGDL_MODEL [-N <Network>] [-R <300|512>] [-Q <true|false>] [-D <COCO|PASCAL>]"
 	while getopts ":N:R:Q:D:" opt; do
 		case "${opt}" in
@@ -69,16 +68,20 @@ function DOWNLOAD_BIGDL_MODEL(){
 	else
 		QUANTIZE=""
 	fi
+
+	if [[ ${DATASET} == "VOC0712" ]]; then
+		DATASET="PASCAL"
+	fi
        
-	MODEL_NAME="bigdl_ssd-${NETWORK}-${RESOLUTION}x${RESOLUTION}${QUANTIZE}_${DATASET}_${BigDL_VERSION}.model"
-	MODEL_PATH=${INT_BASE_MODEL_SERVER_BIGDL}/${MODEL_NAME}
+	local MODEL_NAME="bigdl_ssd-${NETWORK}-${RESOLUTION}x${RESOLUTION}${QUANTIZE}_${DATASET}_${BigDL_VERSION}.model"
+	local MODEL_PATH=${INT_BASE_MODEL_SERVER_BIGDL}/${MODEL_NAME}
 	
 	echo "****************************************************************"
 	if [[ -f ${TEMP_SSD_MODEL_DIR}/bigdl/${MODEL_NAME} ]]; then
 		DATE_PREFIX "INFO" "Base model: ${MODEL_NAME} already exists in ${TEMP_SSD_MODEL_DIR}/bigdl, will not download again!"
 	else	
 		DATE_PREFIX "INFO" "Testing the Network connection to: ${MODEL_PATH} ..."
-		RET_CODE=`curl -L -I -s --connect-timeout ${TIMEOUT} ${MODEL_PATH} -w %{http_code} | tail -n1`
+		local RET_CODE=`curl -L -I -s --connect-timeout ${TIMEOUT} ${MODEL_PATH} -w %{http_code} | tail -n1`
 		if [[ x${RET_CODE} == "x200" ]]; then
 			DATE_PREFIX "INFO" "Network connection is OK!"
 			DATE_PREFIX "INFO" "Begin to download base model: ${MODEL_NAME} from Internal server: ${INT_BASE_MODEL_SERVER_BIGDL} ..."
@@ -92,9 +95,9 @@ function DOWNLOAD_BIGDL_MODEL(){
 			DATE_PREFIX "INFO" "Base model have been saved to: ${TEMP_SSD_MODEL_DIR}/bigdl"
 		else
 			DATE_PREFIX "INFO" "Network connection failed." 
-			MODEL_PATH=${EXT_BASE_MODEL_SERVER_BIGDL}/${MODEL_NAME}	
+			local MODEL_PATH=${EXT_BASE_MODEL_SERVER_BIGDL}/${MODEL_NAME}	
 			DATE_PREFIX "INFO" "Testing the Network connection to: ${MODEL_PATH} ..."
-			RET_CODE=`curl -L -I -s --connect-timeout ${TIMEOUT} ${MODEL_PATH} -w %{http_code} | tail -n1`
+			local RET_CODE=`curl -L -I -s --connect-timeout ${TIMEOUT} ${MODEL_PATH} -w %{http_code} | tail -n1`
 			if [[ x${RET_CODE} == "x200" ]]; then
 				DATE_PREFIX "INFO" "Network connection is OK!"
 				DATE_PREFIX "INFO" "Begin to download base model: ${MODEL_NAME} from external server: ${EXT_BASE_MODEL_SERVER_BIGDL} ..."
@@ -108,20 +111,30 @@ function DOWNLOAD_BIGDL_MODEL(){
 				exit -13
 			fi
 		fi
-	fi		
+	fi
+	## Create the classname.txt file based on dataset
+	local CLASS_NAME=${TEMP_SSD_MODEL_DIR}/bigdl/${DATA_SET}_classname.txt
+	if [[ ! -f ${CLASS_NAME} ]]; then
+		if [[ ${DATA_SET} == "VOC0712" ]]; then
+			cp -r ${CURRENT_DIR}/../data/pascal/classname.txt ${CLASS_NAME}
+		elif [[ ${DATA_SET} == "COCO" ]]; then
+			echo -e "1\n2" > ${CLASS_NAME}
+		fi
+	fi
 }
 
 
-## Downlaod Base Models Based on Local Configurations
+## Downlaod Caffe Base Models Based on Local Configurations
 function DOWNLOAD_CAFFE_MODEL(){
-	RESOLUTION=${IMAGE_RESOLUTION}
-	if [[ x${BASE_MODEL} == "xvgg16" ]]; then
+	local RESOLUTION=${IMAGE_RESOLUTION}
+	local NETWORK=`echo ${BASE_MODEL} | awk -F "-" '{ print $2 }'`
+	if [[ x${NETWORK} == "xvgg16" ]]; then
 		if [[ ! -f ${TEMP_SSD_MODEL_DIR}/caffe/VGGNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}/VGG_VOC0712_SSD_${RESOLUTION}x${RESOLUTION}_iter_120000.caffemodel ]] || [[ ! -f ${TEMP_SSD_MODEL_DIR}/caffe/VGGNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}/test.prototxt ]]; then
 			## Downlaod from Internal Server
-			INT_VGG_BASE_MODEL="${INT_BASE_MODEL_SERVER_CAFFE}/VGGNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}"
+			local INT_VGG_BASE_MODEL="${INT_BASE_MODEL_SERVER_CAFFE}/VGGNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}"
 			echo "****************************************************************"
 			DATE_PREFIX "INFO" "Testing the Network connection to: ${INT_VGG_BASE_MODEL} ..."
-			RET_CODE=`curl -L -I -s --connect-timeout ${TIMEOUT} ${INT_VGG_BASE_MODEL} -w %{http_code} | tail -n1`
+			local RET_CODE=`curl -L -I -s --connect-timeout ${TIMEOUT} ${INT_VGG_BASE_MODEL} -w %{http_code} | tail -n1`
 			if [[ x${RET_CODE} == "x200" ]]; then
 				DATE_PREFIX "INFO" "Network connection is OK!"	
 				DATE_PREFIX "INFO" "Begin to download base model: ${BASE_MODEL} with resolution: ${RESOLUTION}x${RESOLUTION} from Internal server: ${INT_VGG_BASE_MODEL} ..."
@@ -167,17 +180,18 @@ function DOWNLOAD_CAFFE_MODEL(){
 		else
 			DATE_PREFIX "INFO" "Base model: ${BASE_MODEL} already exists in ${TEMP_SSD_MODEL_DIR}/caffe/VGGNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}, will not download again!"
 		fi
-	elif [[ x${BASE_MODEL} == "xalexnet" ]]; then
+	elif [[ x${NETWORK} == "xalexnet" ]]; then
 		if [[ ! -f ${TEMP_SSD_MODEL_DIR}/caffe/AlexNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}/ALEXNET_JDLOGO_V4_SSD_${RESOLUTION}x${RESOLUTION}_iter_920.caffemodel ]] || [[ ! -f ${TEMP_SSD_MODEL_DIR}/caffe/AlexNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}/deploy.prototxt ]] || [[ ! -f ${TEMP_SSD_MODEL_DIR}/caffe/AlexNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}/classname.txt ]]; then
 			if [[ ! x${RESOLUTION} == "x300" ]]; then
                                         DATE_PREFIX "INFO" "Only support ${BASE_MODEL} with resolution: 300x300 currently! Exiting..."
                                         exit -8
                         fi
 			## Downlaod from Internal Server
-			INT_ALEX_BASE_MODEL=${INT_BASE_MODEL_SERVER_CAFFE}/AlexNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}
+			local INT_ALEX_BASE_MODEL=${INT_BASE_MODEL_SERVER_CAFFE}/AlexNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}
 			echo "****************************************************************"
 			DATE_PREFIX "INFO" "Testing the Network connection to: ${INT_ALEX_BASE_MODEL} ..."	
-			RET_CODE=`curl -L -I -s --connect-timeout ${TIMEOUT} ${INT_ALEX_BASE_MODEL} -w %{http_code} | tail -n1`
+			echo "curl -L -I -s --connect-timeout ${TIMEOUT} ${INT_ALEX_BASE_MODEL} -w %{http_code} | tail -n1"
+			local RET_CODE=`curl -L -I -s --connect-timeout ${TIMEOUT} ${INT_ALEX_BASE_MODEL} -w %{http_code} | tail -n1`
 			if [[ x${RET_CODE} == "x200" ]]; then
 				DATE_PREFIX "INFO" "Network connection is OK!"	
 				DATE_PREFIX "INFO" "Begin to download base model: ${BASE_MODEL} with resolution: ${RESOLUTION}x${RESOLUTION} from Internal server: ${INT_ALEX_BASE_MODEL} ..."
@@ -230,13 +244,29 @@ function DOWNLOAD_CAFFE_MODEL(){
 	fi
 }
 
+## Downlaod Base Models Based on Local Configurations
+function DOWNLOAD_BASE_MODEL(){
+	local ENGINE=`echo ${BASE_MODEL} | awk -F "-" '{ print $1 }'`	
+	local NETWORK=`echo ${BASE_MODEL} | awk -F "-" '{ print $2 }'`
+	if [[ x${ENGINE} == "xbigdl" ]]; then
+		if [[ x${NETWORK} == "xvgg16" ]]; then
+			DOWNLOAD_BIGDL_MODEL -N ${NETWORK} -R ${IMAGE_RESOLUTION} -Q ${IS_QUANT_ENABLE} -D ${DATA_SET}	
+		else
+			DATE_PREFIX "INFO" "BigDL base model only support vgg16 currently, exiting..."
+			exit -14
+		fi
+	elif [[ x${ENGINE} == "xcaffe" ]]; then
+		DOWNLOAD_CAFFE_MODEL
+	fi
+}
+
 function DOWNLOAD_PASCAL(){
-	SERVER=$1 ## the server from where to download
-	DEST_DIR=$2 ## the dir to save the downloaded files
-	IS_INT=$3 ## Flag, is the server Internal or External? 0 represents Internal, 1 represents External. 
+	local SERVER=$1 ## the server from where to download
+	local DEST_DIR=$2 ## the dir to save the downloaded files
+	local IS_INT=$3 ## Flag, is the server Internal or External? 0 represents Internal, 1 represents External. 
 
 	DATE_PREFIX "INFO" "Testing the Network connection to: ${SERVER} ..."
-	RET_CODE=`curl -L -I -s --connect-timeout ${TIMEOUT} ${SERVER} -w %{http_code} | tail -n1`
+	local RET_CODE=`curl -L -I -s --connect-timeout ${TIMEOUT} ${SERVER} -w %{http_code} | tail -n1`
 	if [[ x${RET_CODE} == "x200" ]]; then
 		DATE_PREFIX "INFO" "Network connection is OK!"
 		cd ${DEST_DIR}
@@ -266,12 +296,12 @@ function DOWNLOAD_PASCAL(){
 
 
 function DOWNLOAD_COCO(){
-        SERVER=$1 ## the server from where to download
-        DEST_DIR=$2 ## the dir to save the downloaded files
-        IS_INT=$3 ## Flag, is the server Internal or External? 0 represents Internal, 1 represents External.
+        local SERVER=$1 ## the server from where to download
+        local DEST_DIR=$2 ## the dir to save the downloaded files
+        local IS_INT=$3 ## Flag, is the server Internal or External? 0 represents Internal, 1 represents External.
 
 	DATE_PREFIX "INFO" "Testing the Network connection to: ${SERVER} ..."
-        RET_CODE=`curl -L -I -s --connect-timeout ${TIMEOUT} ${SERVER} -w %{http_code} | tail -n1`
+        local RET_CODE=`curl -L -I -s --connect-timeout ${TIMEOUT} ${SERVER} -w %{http_code} | tail -n1`
 	if [[ x${RET_CODE} == "x200" ]]; then
 		DATE_PREFIX "INFO" "Network connection is OK!"
 	        cd ${DEST_DIR}
@@ -321,10 +351,20 @@ function COCO_SPLIT_ANNO(){
 		DATE_PREFIX "INFO" "Usage: $0 DIRECTORY"
 		exit -5
 	fi
-	DATA_DIR=$1 ## coco dataset path
-	PY_BATCH_SPLIT=${CURRENT_DIR}/../data/coco/PythonAPI/scripts/batch_split_annotation.py
+	local DATA_DIR=$1 ## coco dataset path
+	local PY_BATCH_SPLIT=${CURRENT_DIR}/../data/coco/PythonAPI/scripts/batch_split_annotation.py
 	if [[ -f ${PY_BATCH_SPLIT} ]]; then
 		echo "****************************************************************"
+		DATE_PREFIX "INFO" "Building COCO API ..."
+		cd ${CURRENT_DIR}/../data/coco/PythonAPI
+		sh build_coco.sh >> /dev/null 2>&1
+		if [[ $? ]]; then
+			DATE_PREFIX "INFO" "Building Done!"
+		else
+			DATE_PREFIX "ERROR" "Building COCO API failed, it's possibly something wrong with Python! Exiting ..."
+			exit -15
+		fi
+
 		DATE_PREFIX "INFO" "Calling Python script: ${PY_BATCH_SPLIT} ..."
 		python ${PY_BATCH_SPLIT} ${DATA_DIR}
 		DATE_PREFIX "INFO" "Split annotations done!"
@@ -393,9 +433,9 @@ function CONVERT_SEQ(){
 	echo "****************************************************************"
 	if [[ ! -f ${SSD_JARS_PATH} ]]; then
 		DATE_PREFIX "INFO" "No Local Executable SSD Jars available, will try to download it ..."
-		REMOTE_SSD_JAR="${INT_BASE_MODEL_SERVER}/jars/${SSD_JARS_NAME}"
+		local REMOTE_SSD_JAR="${INT_BASE_MODEL_SERVER}/jars/${SSD_JARS_NAME}"
 		DATE_PREFIX "INFO" "Testing the Network connection to: ${REMOTE_SSD_JAR} ..."
-		RET_CODE=`curl -L -I -s --connect-timeout ${TIMEOUT} ${REMOTE_SSD_JAR} -w %{http_code} | tail -n1`
+		local RET_CODE=`curl -L -I -s --connect-timeout ${TIMEOUT} ${REMOTE_SSD_JAR} -w %{http_code} | tail -n1`
 		if [[ x${RET_CODE} == "x200" ]]; then
 			DATE_PREFIX "INFO" "Network connection is OK!"	
 			DATE_PREFIX "INFO" "Begin to download Executable SSD Jars ..."
@@ -416,23 +456,40 @@ function CONVERT_SEQ(){
 	if [[ x${DATA_SET} == "xVOC0712" ]]; then
 		DATE_PREFIX "INFO" "Begin to convert ${DATA_SET} test data ..."
 		rm -fr ${PASCAL_DATA_DIR}/seq/
+		DATE_PREFIX "INFO" "java -cp ${SSD_JARS_PATH} com.intel.analytics.zoo.pipeline.common.dataset.RoiImageSeqGenerator -f ${PASCAL_DATA_DIR}/VOCdevkit -o ${PASCAL_DATA_DIR}/seq/test -i voc_2007_test -p ${TOTAL_CORES}"
 		java -cp ${SSD_JARS_PATH} com.intel.analytics.zoo.pipeline.common.dataset.RoiImageSeqGenerator -f ${PASCAL_DATA_DIR}/VOCdevkit -o ${PASCAL_DATA_DIR}/seq/test -i voc_2007_test -p ${TOTAL_CORES} >> /dev/null 2>&1
-		rm -fr ${PASCAL_DATA_DIR}/seq/test/.*crc
-		DATE_PREFIX "INFO" "Convert done."
+		if [[ $? == 0 ]]; then
+			rm -fr ${PASCAL_DATA_DIR}/seq/test/.*crc
+			DATE_PREFIX "INFO" "Convert done."
+		else
+			DATE_PREFIX "ERROR" "Convert failed!"
+			exit -15
+		fi
 		DATE_PREFIX "INFO" "Begin to convert ${DATA_SET} train data ..."
+		DATE_PREFIX "INFO" "java -cp ${SSD_JARS_PATH} com.intel.analytics.zoo.pipeline.common.dataset.RoiImageSeqGenerator -f ${PASCAL_DATA_DIR}/VOCdevkit -o ${PASCAL_DATA_DIR}/seq/train -i voc_2007_trainval -p ${TOTAL_CORES}"
 		java -cp ${SSD_JARS_PATH} com.intel.analytics.zoo.pipeline.common.dataset.RoiImageSeqGenerator -f ${PASCAL_DATA_DIR}/VOCdevkit -o ${PASCAL_DATA_DIR}/seq/train -i voc_2007_trainval -p ${TOTAL_CORES} >> /dev/null 2>&1
-		rm -fr ${PASCAL_DATA_DIR}/seq/train/.*crc
-		DATE_PREFIX "INFO" "Convert done."
+		if [[ $? == 0 ]]; then
+			rm -fr ${PASCAL_DATA_DIR}/seq/train/.*crc
+			DATE_PREFIX "INFO" "Convert done."
+		else
+			DATE_PREFIX "ERROR" "Convert failed!"
+			exit -15
+		fi
 
 		SEQ_DATASET_REPLICA ${PASCAL_DATA_DIR}/seq ${DATA_REPLICA} 
 		COPY_TO_HDFS ${PASCAL_DATA_DIR}/seq ${HDFS_PASCAL_DIR}
        	elif [[ x${DATA_SET} == "xCOCO" ]]; then
 		DATE_PREFIX "INFO" "Begin to convert ${DATA_SET} minival data ..."
 		rm -fr ${COCO_DATA_DIR}/seq/
+		DATE_PREFIX "INFO" "java -cp ${SSD_JARS_PATH} com.intel.analytics.zoo.pipeline.common.dataset.RoiImageSeqGenerator -f ${COCO_DATA_DIR} -o ${COCO_DATA_DIR}/seq/coco-minival -i coco_minival2014 -p ${TOTAL_CORES}"
 		java -cp ${SSD_JARS_PATH} com.intel.analytics.zoo.pipeline.common.dataset.RoiImageSeqGenerator -f ${COCO_DATA_DIR} -o ${COCO_DATA_DIR}/seq/coco-minival -i coco_minival2014 -p ${TOTAL_CORES}
-		rm -fr ${COCO_DATA_DIR}/seq/coco-minival/.*crc
-		DATE_PREFIX "INFO" "Convert done."
-
+		if [[ $? == 0 ]]; then
+			rm -fr ${COCO_DATA_DIR}/seq/coco-minival/.*crc
+			DATE_PREFIX "INFO" "Convert done."
+		else
+			DATE_PREFIX "ERROR" "Convert failed!"
+			exit -15
+		fi
 		SEQ_DATASET_REPLICA ${COCO_DATA_DIR}/seq ${DATA_REPLICA}
 		COPY_TO_HDFS ${COCO_DATA_DIR}/seq ${HDFS_COCO_DIR}
        	else
@@ -442,8 +499,8 @@ function CONVERT_SEQ(){
 }
 
 function COPY_TO_HDFS(){
-	SRC_DIR=$1
-	DEST_HDFS=$2
+	local SRC_DIR=$1
+	local DEST_HDFS=$2
 
 	if [[ ! -d ${SRC_DIR} ]] || [[ "`ls -A ${SRC_DIR}`" == "" ]]; then
 		DATE_PREFIX "INFO" "Source dir: ${SRC_DIR} does not exist or is empty, exiting ..."
@@ -480,7 +537,6 @@ function COPY_TO_HDFS(){
 
 ## Start from here
 
-#DOWNLOAD_DATA_SET
-#CONVERT_SEQ
-#DOWNLOAD_CAFFE_MODEL 
-DOWNLOAD_BIGDL_MODEL -N vgg16 -R 300 -Q true -D COCO
+DOWNLOAD_DATA_SET
+CONVERT_SEQ
+DOWNLOAD_BASE_MODEL 
