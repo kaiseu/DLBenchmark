@@ -20,3 +20,23 @@ cp -r ${analytics-zoo}/pipeline/objectDetection/dist/target/object-detection-0.1
 - ${TEMP_DATA_DIR} is the dir for temp data storage, which is configured in ${DLBenchmark}/framework/bigdl/networks/ssd/conf/localSetting.conf
 - ${DLBenchmark} represents the path of DLBenchmark. 
   
+
+#### Issues may occur
+**1. From pycocotools.coco import COCO fails**
+  - Traceback (most recent call last):
+    File "/root/XX/DLBenchmark/framework/bigdl/networks/ssd/data/coco/PythonAPI/scripts/split_annotation.py", line 9, in <module>
+      from pycocotools.coco import COCO
+    File "/root/XX/DLBenchmark/framework/bigdl/networks/ssd/data/coco/PythonAPI/pycocotools/coco.py", line 55, in <module>
+      from . import mask as maskUtils
+    File "/root/XX/DLBenchmark/framework/bigdl/networks/ssd/data/coco/PythonAPI/pycocotools/mask.py", line 3, in <module>
+      import pycocotools._mask as _mask
+  ImportError: /root/XX/DLBenchmark/framework/bigdl/networks/ssd/data/coco/PythonAPI/pycocotools/_mask.so: undefined symbol: PyFPE_jbuf
+  
+  >**Solved:** 
+  ```
+      cd coco/PythonAPI
+      make
+      sudo make install
+      sudo python setup.py install
+   ```
+  
