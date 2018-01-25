@@ -22,8 +22,8 @@ source "${LOCAL_CONF_FILE}"
 if [[ -f "${SSD_JARS_PATH}" ]]; then
         DATE_PREFIX "INFO"  "Will use executable jar file: ${SSD_JARS_PATH}"
 else
-        DATE_PREFIX "ERROR"  "Executable jar file does not exist, you may need to build the project first! Exiting..."
-        exit -1
+	DATE_PREFIX "WARNING"  "Executable jar file does not exist, will try to build it ..."
+	sh ${CURRENT_DIR}/../src/build.sh
 fi
 
 #############################################################################
