@@ -38,8 +38,11 @@ mvn clean package -DskipTests
 
 if [[ $? == 0 ]]; then
 	DATE_PREFIX "INFO" "Build SSD from source code finished successfully!"
-	cp -r ${CURRENT_DIR}/objectDetection/dist/target/object-detection-0.1-SNAPSHOT-jar-with-dependencies-and-spark.jar ${SSD_JARS_PATH}
-	DATE_PREFIX "INFO" "Executable jar has been copied to ${SSD_JARS_PATH}"
+	if [[ ! -d ${SSD_JARS_ROOT} ]]; then
+		mkdir -p ${SSD_JARS_ROOT}
+	fi
+	cp -r ${CURRENT_DIR}/objectDetection/dist/target/object-detection-0.1-SNAPSHOT-jar-with-dependencies-and-spark.jar ${SSD_JARS_ROOT}
+	DATE_PREFIX "INFO" "Executable jar has been copied to ${SSD_JARS_ROOT}"
 else
 	DATE_PREFIX "ERROR" "Build failed, exiting ..."
 	exit -3
