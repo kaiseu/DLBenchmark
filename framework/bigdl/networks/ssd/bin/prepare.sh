@@ -449,7 +449,8 @@ function CONVERT_SEQ(){
 			DATE_PREFIX "INFO" "Executable SSD Jars have been saved to: ${SSD_JARS_PATH}"
 			echo "****************************************************************"
 		else
-			DATE_PREFIX "INFO" "Network connection failed. Please build the SSD first."
+			DATE_PREFIX "WARNING"  "Network connection failed, will try to build it ..."
+			sh ${CURRENT_DIR}/../src/build.sh
 			
 		fi
 	fi
@@ -490,7 +491,7 @@ function CONVERT_SEQ(){
 			DATE_PREFIX "ERROR" "Convert failed!"
 			exit -15
 		fi
-		SEQ_DATASET_REPLICA ${COCO_DATA_DIR}/seq ${DATA_REPLICA}
+		SEQ_DATASET_REPLICA ${COCO_DATA_DIR}/seq/coco-minival ${DATA_REPLICA}
 		COPY_TO_HDFS ${COCO_DATA_DIR}/seq ${HDFS_COCO_DIR}
        	else
                	DATE_PREFIX "INFO" "Dataset only can be VOC0712 or COCO currently! Exiting..."
