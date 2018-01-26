@@ -1,4 +1,0 @@
-2018年 01月 02日 星期二 16:36:06 CST
-
-spark-submit   --master spark://master:7077   --executor-cores 6   --num-executors 4   --total-executor-cores 24   --driver-memory 60G   --executor-memory 300G   --class com.intel.analytics.zoo.pipeline.ssd.example.Predict   /home/xuk1/sourceCode/DLBenchmark/framework/bigdl/networks/ssd/bin/../jars/pipeline-0.1-SNAPSHOT-jar-with-dependencies.jar   -f /tmp/SSD_Predict/coco-minival   --folderType seq   -o /tmp/SSD_Predict/output   --caffeDefPath  /home/xuk1/sourceCode/DLBenchmark/framework/bigdl/networks/ssd/bin/../models/VGGNet/VOC0712/SSD_300x300/test.prototxt   --caffeModelPath  /home/xuk1/sourceCode/DLBenchmark/framework/bigdl/networks/ssd/bin/../models/VGGNet/VOC0712/SSD_300x300/VGG_VOC0712_SSD_300x300_iter_120000.caffemodel   -t vgg16   --classname /home/xuk1/sourceCode/DLBenchmark/framework/bigdl/networks/ssd/bin/../models/VGGNet/VOC0712/classname.txt   -v false   -b 96   -r 300   -s false   -p 24   -q false
-
