@@ -111,7 +111,7 @@ spark-submit \
   -r ${IMAGE_RESOLUTION} \
   -p ${NUM_PARTITION} \
   -q ${IS_QUANT_ENABLE}
-" | tee -a ${LOCAL_LOG_DIR}/${LOCAL_LOG_FILE}
+" | tee ${LOCAL_LOG_DIR}/${LOCAL_LOG_FILE}
 
 echo "****************************************************************"
 
@@ -133,3 +133,10 @@ time spark-submit \
   -r ${IMAGE_RESOLUTION} \
   -p ${NUM_PARTITION} \
   -q ${IS_QUANT_ENABLE} | tee -a ${LOCAL_LOG_DIR}/${LOCAL_LOG_FILE}
+
+ThroughPut=`grep "Throughput is" ${LOCAL_LOG_DIR}/${LOCAL_LOG_FILE} | awk -F " " ' {print $13} '`
+Time=`grep "Throughput is" ${LOCAL_LOG_DIR}/${LOCAL_LOG_FILE} | awk -F " " ' {print $9} '`
+
+DATE_PREFIX "INFO" "Summary:\n"
+echo "Framework    Network    Phase    BaseModel    Dataset    DataReplica    Quantization    ThroughPut(record/s)    ElapsedTime(s)"
+echo "bigdl	     SSD       predict  ${BASE_MODEL}    ${DATA_SET}      ${DATA_REPLICA}            ${IS_QUANT_ENABLE}           ${ThroughPut}        ${Time}"
