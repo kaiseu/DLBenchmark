@@ -115,7 +115,7 @@ spark-submit \
 
 echo "****************************************************************"
 
-time spark-submit \
+spark-submit \
   --master ${SPARK_MASTER} \
   --executor-cores ${EXECUTOR_CORES} \
   --num-executors ${NUM_EXECUTORS} \
@@ -137,6 +137,6 @@ time spark-submit \
 ThroughPut=`grep "Throughput is" ${LOCAL_LOG_DIR}/${LOCAL_LOG_FILE} | awk -F " " ' {print $13} '`
 Time=`grep "Throughput is" ${LOCAL_LOG_DIR}/${LOCAL_LOG_FILE} | awk -F " " ' {print $9} '`
 
-DATE_PREFIX "INFO" "Summary:\n"
+DATE_PREFIX "INFO" "Summary:"
 echo "Framework    Network    Phase    BaseModel    Dataset    DataReplica    Quantization    ThroughPut(record/s)    ElapsedTime(s)"
-echo "bigdl	     SSD       predict  ${BASE_MODEL}    ${DATA_SET}      ${DATA_REPLICA}            ${IS_QUANT_ENABLE}           ${ThroughPut}        ${Time}"
+echo -e "bigdl	     SSD       predict  ${BASE_MODEL}    ${DATA_SET}      ${DATA_REPLICA}            ${IS_QUANT_ENABLE}           ${ThroughPut}        ${Time}\n"
