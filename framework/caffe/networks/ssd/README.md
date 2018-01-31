@@ -96,7 +96,19 @@ Copy the built-out binaries across Cluster Nodes:
 ```shell
 pscp -h slaves -r intelcaffe /opt/intelcaffe
 ```
-
+#### Prepare the LMDB files
+```shell
+cd $CAFFE_ROOT
+# edit DATAPATH in examples/ssd/ssdvars.sh to point to your VOC dataset
+source examples/ssd/ssdvars.sh
+# Create the trainval.txt, test.txt, and test_name_size.txt
+./data/VOC0712/create_list.sh
+# It will create lmdb files for trainval and test with encoded original image:
+# - $DATAPATH/data/VOCdevkit/VOC0712/lmdb/VOC0712_trainval_lmdb
+# - $DATAPATH/data/VOCdevkit/VOC0712/lmdb/VOC0712_test_lmdb
+# and make soft links at examples/VOC0712/
+./data/VOC0712/create_data.sh
+```
 
 
 
