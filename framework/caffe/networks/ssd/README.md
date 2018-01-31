@@ -109,7 +109,13 @@ source examples/ssd/ssdvars.sh
 # and make soft links at examples/VOC0712/
 ./data/VOC0712/create_data.sh
 ```
+#### Notable issues
+- Failed to create the LMDB file, after source examples/ssd/ssdvars.sh, nothing happened(no output). It turns out to be caused by the numpy version issue. After reboot and re-try, it showed the error message: "RuntimeError: module compiled against API version 0xa but this version of numpy is 0x7".
 
+resolved by:
+```shell
+pip install numpy --upgrade
+```
 
 
 
