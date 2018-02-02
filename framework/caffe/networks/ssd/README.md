@@ -34,6 +34,10 @@ cd intelcaffe
 ```
 2. Install dependencies and system tools
 ```shell
+yum install epel-release
+yum clean all
+# export system proxy if needed
+export https_proxy=your_proxy_server:server_port
 yum -y install python-devel boost boost-devel cmake numpy numpy-devel gflags gflags-devel glog glog-devel protobuf protobuf-devel hdf5 hdf5-devel lmdb lmdb-devel leveldb leveldb-devel snappy-devel opencv opencv-devel
 ```
 pacages: numpy-devel gflags gflags-devel glog glog-devel hdf5 hdf5-devel lmdb lmdb-devel leveldb leveldb-devel may not be available from your OS repo, please install them manaually.
