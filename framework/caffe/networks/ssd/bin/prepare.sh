@@ -209,6 +209,65 @@ function DOWNLOAD_DATA_SET(){
 	fi
 }
 
+function DOWNLOAD_VGG_MODEL(){
+	local RESOLUTION=${IMAGE_RESOLUTION}
+	if [[ x${BASE_MODEL} == "xVGGNet" ]]; then
+		if [[ ! -f ${TEMP_SSD_MODEL_DIR}/caffe/VGGNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}/VGG_VOC0712_SSD_${RESOLUTION}x${RESOLUTION}_iter_120000.caffemodel ]] || [[ ! -f ${TEMP_SSD_MODEL_DIR}/caffe/VGGNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}/test.prototxt ]]; then
+			## Downlaod from Internal Server
+			local INT_VGG_BASE_MODEL="${INT_BASE_MODEL_SERVER_CAFFE}/VGGNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}"
+			echo "****************************************************************"
+			DATE_PREFIX "INFO" "Testing the Network connection to: ${INT_VGG_BASE_MODEL} ..."
+			local RET_CODE=`curl -L -I -s --connect-timeout ${TIMEOUT} ${INT_VGG_BASE_MODEL} -w %{http_code} | tail -n1`
+			if [[ x${RET_CODE} == "x200" ]]; then
+				DATE_PREFIX "INFO" "Network connection is OK!"	
+				DATE_PREFIX "INFO" "Begin to download base model: ${BASE_MODEL} with resolution: ${RESOLUTION}x${RESOLUTION} from Internal server: ${INT_VGG_BASE_MODEL} ..."
+				if [[ ! -d ${TEMP_SSD_MODEL_DIR}/caffe/VGGNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION} ]]; then
+					mkdir -p ${TEMP_SSD_MODEL_DIR}/caffe/VGGNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}
+				fi
+				cd ${TEMP_SSD_MODEL_DIR}/caffe/VGGNet/${DATA_SET}/
+				curl -O ${INT_BASE_MODEL_SERVER_CAFFE}/VGGNet/${DATA_SET}/classname.txt
+				cd - >> /dev/null 2>&1
+				cd ${TEMP_SSD_MODEL_DIR}/caffe/VGGNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}/
+				curl -OO ${INT_BASE_MODEL_SERVER_CAFFE}/VGGNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}/{test.prototxt,VGG_VOC0712_SSD_${RESOLUTION}x${RESOLUTION}_iter_120000.caffemodel}
+				cd - >> /dev/null 2>&1
+				DATE_PREFIX "INFO" "Download Done!"
+				DATE_PREFIX "INFO" "Base model have been saved to: ${TEMP_SSD_MODEL_DIR}/caffe/VGGNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}"
+			else
+				DATE_PREFIX "INFO" "Network connection failed."
+				## Downlaod from External Server, Only support dataset VOC0712
+				eval EXT_VGG_BASE_MODEL="\${EXT_VGG_BASE_MODEL_${RESOLUTION}}"
+				DATE_PREFIX "INFO" "Testing the Network connection to: ${EXT_VGG_BASE_MODEL} ..."
+				curl -L -I -s --connect-timeout ${TIMEOUT} ${EXT_VGG_BASE_MODEL} -w %{http_code} | grep "HTTP/1.1 200" >> /dev/null 2>&1
+				if [[ $? ]]; then
+					DATE_PREFIX "INFO" "Network connection is OK!"
+					DATE_PREFIX "INFO" "Begin to download base model: ${BASE_MODEL} with resolution: ${RESOLUTION}x${RESOLUTION} from External server: ${EXT_VGG_BASE_MODEL} ..."
+					if [[ ! -d ${TEMP_SSD_MODEL_DIR}/caffe ]]; then
+						mkdir -p ${TEMP_SSD_MODEL_DIR}/caffe
+					fi
+					wget ${EXT_VGG_BASE_MODEL} -O ${TEMP_SSD_MODEL_DIR}/caffe/models_VGGNet_VOC0712_SSD_${RESOLUTION}x${RESOLUTION}.tar.gz
+					if [[ $? == 0 ]]; then
+						tar xvf ${TEMP_SSD_MODEL_DIR}/caffe/models_VGGNet_VOC0712_SSD_${RESOLUTION}x${RESOLUTION}.tar.gz -C ${TEMP_SSD_MODEL_DIR}/caffe >> /dev/null 2>&1
+						mv ${TEMP_SSD_MODEL_DIR}/caffe/models/VGGNet/ ${TEMP_SSD_MODEL_DIR}/caffe
+						rm -fr ${TEMP_SSD_MODEL_DIR}/caffe/models/
+						DATE_PREFIX "INFO" "Download Done!"
+						DATE_PREFIX "INFO" "Base model have been saved to: ${TEMP_SSD_MODEL_DIR}/caffe/VGGNet/VOC0712/SSD_${RESOLUTION}x${RESOLUTION}"
+					else
+						DATE_PREFIX "ERROR" "Download base model: ${BASE_MODEL} failed, possibly because of the network issue"
+						exit -10
+					fi
+				else
+					DATE_PREFIX "INFO" "Can not connect to Server: ${EXT_VGG_BASE_MODEL}, download base model: ${BASE_MODEL} with resolution: ${RESOLUTION}x${RESOLUTION} failed! Please check and try again. Exiting..."
+					exit -7
+				fi
+			fi
+		else
+			DATE_PREFIX "INFO" "Base model: ${BASE_MODEL} already exists in ${TEMP_SSD_MODEL_DIR}/caffe/VGGNet/${DATA_SET}/SSD_${RESOLUTION}x${RESOLUTION}, will not download again!"
+	fi
+	else
+		DATE_PREFIX "ERROR" "Currently only support base model VGGNet!"
+		exit -4
+	fi
+}
 
 function BUILD_CAFFE(){
 	if [[ ! -d ${CAFFE_ROOT}/../ ]]; then
@@ -291,5 +350,6 @@ function PREPARE_LMDB(){
 ## Start from here
 
 #DOWNLOAD_DATA_SET
-BUILD_CAFFE
-PREPARE_LMDB
+DOWNLOAD_VGG_MODEL
+#BUILD_CAFFE
+#PREPARE_LMDB
