@@ -52,3 +52,18 @@ function SEQ_DATASET_REPLICA(){
 
 	DATE_PREFIX "INFO" "Creating done!"
 }
+
+function get_complier(){
+	which gcc > /dev/null 2>&1
+	if [ $? -eq 0 ]; then
+		return 1 
+	else
+		which icc > /dev/null 2>&1
+		if [ $? -eq 0 ]; then
+			return 2
+		else
+			echo "Unsupported complier, exiting ..."
+			exit -1
+		fi
+	fi
+}
