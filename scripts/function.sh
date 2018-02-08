@@ -53,6 +53,7 @@ function SEQ_DATASET_REPLICA(){
 	DATE_PREFIX "INFO" "Creating done!"
 }
 
+## Get the complier of the system
 function get_complier(){
 	which gcc > /dev/null 2>&1
 	if [ $? -eq 0 ]; then
@@ -66,4 +67,9 @@ function get_complier(){
 			exit -1
 		fi
 	fi
+}
+
+## calculator
+CALC(){
+	awk "BEGIN { print "$*" }";
 }

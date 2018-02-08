@@ -42,7 +42,7 @@ function RUN_NETWORK(){
 	DATE_PREFIX "INFO" "Current network to run is: ${CUR_NETWORK}, network root dir is: ${CUR_NETWORK_ROOT}." | tee -a ${LOGS_PHASE}
 	DATE_PREFIX "INFO" "Current phase to run is: ${CUR_PHASE}, calling script: ${EXEC_SCRIPT} ..." | tee -a ${LOGS_PHASE}
 	START_TIME=$(date +%s)
-	sh ${EXEC_SCRIPT} | tee -a ${LOGS_PHASE}
+	sh ${EXEC_SCRIPT} 2>&1 | tee -a ${LOGS_PHASE}
 	END_TIME=$(date +%s)
 	ELAPSED_SEC=$(( ${END_TIME} - ${START_TIME} ))
 	DATE_PREFIX "INFO" "Engine: ${CUR_ENGINE} with network: ${CUR_NETWORK} for phase: ${CUR_PHASE} finished, elapsed time is: ${ELAPSED_SEC}s" | tee -a ${LOGS_PHASE}

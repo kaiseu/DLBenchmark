@@ -33,6 +33,9 @@ fi
 
 if [[ -f "${CAFFE_MODEL_PATH}" ]]; then
 	DATE_PREFIX "INFO" "Using Caffe model file: ${CAFFE_MODEL_PATH}"
+	DATE_PREFIX "INFO" "Applying batch size: ${BATCHSIZE}"
+	sed -i "s/batch_size: .*/batch_size: ${BATCHSIZE}/" ${CAFFE_MODEL_PATH}
+	DATE_PREFIX "INFO" "Applied!"
 else
 	DATE_PREFIX "ERROR" "Caffe model file does not exist, exiting ..."
 	exit -2
@@ -48,17 +51,21 @@ if [[ ! -d ${LOCAL_LOG_DIR} ]]; then
 fi
 LOCAL_LOG_FILE=logs_${BASE_MODEL}_${IMAGE_RESOLUTION}x${IMAGE_RESOLUTION}_${DATA_SET}_${ITERATION}.log
 
-DATE_PREFIX "INFO" "Predicting Caffe SSD with ${BASE_MODEL} on ${DATA_SET} with image resolution: ${IMAGE_RESOLUTION}x${IMAGE_RESOLUTION} for ${ITERATION} iterations ..."
-echo "${CAFFE_EXEC} test --detection --model ${CAFFE_MODEL_PATH} --weights ${CAFFE_WEIGHTS_PATH} --iterations=${ITERATION} | tee -a ${LOCAL_LOG_FILE}"
-${CAFFE_EXEC} test --detection --model ${CAFFE_MODEL_PATH} --weights ${CAFFE_WEIGHTS_PATH} --iterations=${ITERATION} | tee -a ${LOCAL_LOG_FILE}
-
-if [[ $? == 0 ]]; then
+DATE_PREFIX "INFO" "Predicting Caffe SSD with ${BASE_MODEL} on ${DATA_SET} with image resolution: ${IMAGE_RESOLUTION}x${IMAGE_RESOLUTION} and batch size: ${BATCHSIZE} for ${ITERATION} iterations(replica: ${DATA_REPLICA}) ..."
+DATE_PREFIX "INFO" "${CAFFE_EXEC} test --detection --model ${CAFFE_MODEL_PATH} --weights ${CAFFE_WEIGHTS_PATH} --iterations=${ITERATION}"
+cd ${CAFFE_ROOT}
+START=$(date +%s.%N)
+${CAFFE_EXEC} test --detection --model ${CAFFE_MODEL_PATH} --weights ${CAFFE_WEIGHTS_PATH} --iterations=${ITERATION} 2>&1 | tee -a ${LOCAL_LOG_FILE}
+RET=$?
+ELAPSED_TIME=$(echo "$(date +%s.%N) - ${START}" | bc)
+ThroughPut=`CALC ${BATCHSIZE}*${ITERATION}/${ELAPSED_TIME}`
+if [[ ${RET} == 0 ]]; then
 	DATE_PREFIX "INFO" "Predict Done!"
 	DATE_PREFIX "INFO" "Summary:"
-	echo "Framework    Network    Phase    BaseModel    Dataset    DataReplica    Iterations"
-	echo -e "caffe       SSD       predict  ${BASE_MODEL}    ${DATA_SET}      ${DATA_REPLICA}            ${ITERATION}"
+	echo "Framework   Network   Phase   BaseModel   Dataset   DataReplica  BatchSize  Iterations   ThroughPut(image/s)   ElapsedTime(s)"
+	echo -e "caffe        SSD      predict  ${BASE_MODEL}     ${DATA_SET}        ${DATA_REPLICA}         ${BATCHSIZE}           ${ITERATION}	     ${ThroughPut}		 ${ELAPSED_TIME}"
 else
 	 DATE_PREFIX "ERROR" "Predict failed with some error!"
 	 exit -3
 fi
-
+cd - >> /dev/null 2>&1

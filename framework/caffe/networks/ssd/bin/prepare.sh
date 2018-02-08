@@ -270,18 +270,20 @@ function DOWNLOAD_VGG_MODEL(){
 }
 
 function BUILD_CAFFE(){
-	if [[ ! -d ${CAFFE_ROOT}/../ ]]; then
-		mkdir -p ${CAFFE_ROOT}/../
+	CAFFE_SSD_ROOT=`dirname ${CAFFE_ROOT}`
+	if [[ ! -d ${CAFFE_SSD_ROOT} ]]; then
+		mkdir -p ${CAFFE_SSD_ROOT}
 	fi
 	if [[ ! -d ${CAFFE_ROOT} ]]; then 
 		DATE_PREFIX "INFO" "Git clone intelcaffe source code ..."
-		cd ${CAFFE_ROOT}/../
+		cd ${CAFFE_SSD_ROOT}
 		git clone https://github.com/kaiseu/intelcaffe
 		if [[ ! $? == 0 ]]; then
 			DATE_PREFIX "ERROR" "Clone failed!"
 			cd - >> /dev/null 2>&1
 			exit -1
 		fi
+		DATE_PREFIX "INFO" "Clone Done!"
 		cd - >> /dev/null 2>&1
 	else
 		DATE_PREFIX "INFO" "Caffe source code already exists in: ${CAFFE_ROOT}, will not clone again!"
@@ -311,6 +313,7 @@ function BUILD_CAFFE(){
 		DATE_PREFIX "INFO" "Will build Caffe with multi-node ..."
 		build_cmd+=" --multinode"
 	fi
+	DATE_PREFIX "INFO" "Building Caffe from source code ..."
 	sh ${build_cmd}
 	
 	if [[ $? -eq 0 ]]; then
@@ -349,7 +352,7 @@ function PREPARE_LMDB(){
 
 ## Start from here
 
-#DOWNLOAD_DATA_SET
+DOWNLOAD_DATA_SET
 DOWNLOAD_VGG_MODEL
-#BUILD_CAFFE
-#PREPARE_LMDB
+BUILD_CAFFE
+PREPARE_LMDB
