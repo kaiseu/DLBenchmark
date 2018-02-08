@@ -23,7 +23,7 @@ else
 	exit -1
 fi
 
-## DO Not Editi, If You NOT Know What You are doing!
+## DO Not Edit, If You NOT Know What You are doing!
 INT_PASCAL_SERVER="bdpa-gateway.sh.intel.com:8088/dlbenchmark/dataset/PASCAL/"
 INT_COCO_SERVER="bdpa-gateway.sh.intel.com:8088/dlbenchmark/dataset/COCO/"
 INT_BASE_MODEL_SERVER="bdpa-gateway.sh.intel.com:8088/dlbenchmark/models/ssd"
