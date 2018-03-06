@@ -25,11 +25,10 @@ function CHECK_EXIST_EXEC(){
 	fi
 }
 
-function SEQ_DATASET_REPLICA(){
+function DATASET_REPLICA(){
 	local ORG_DATASET_DIR=$1
 	local DATA_REPLICA=$2
-
-	SUFFIX=".seq"
+	local SUFFIX=$3
 
 	ORG_SIZE=`du -c ${ORG_DATASET_DIR} | grep "total" | awk -F " " '{ print $1 }'`
 	EST_SIZE=$(( ORG_SIZE * DATA_REPLICA / 1024 ))

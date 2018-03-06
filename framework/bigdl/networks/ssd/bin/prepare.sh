@@ -477,7 +477,7 @@ function CONVERT_SEQ(){
 			exit -15
 		fi
 
-		SEQ_DATASET_REPLICA ${PASCAL_DATA_DIR}/seq ${DATA_REPLICA} 
+		DATASET_REPLICA ${PASCAL_DATA_DIR}/seq ${DATA_REPLICA} ".seq" 
 		COPY_TO_HDFS ${PASCAL_DATA_DIR}/seq ${HDFS_PASCAL_DIR}
        	elif [[ x${DATA_SET} == "xCOCO" ]]; then
 		DATE_PREFIX "INFO" "Begin to convert ${DATA_SET} minival data ..."
@@ -491,7 +491,7 @@ function CONVERT_SEQ(){
 			DATE_PREFIX "ERROR" "Convert failed!"
 			exit -15
 		fi
-		SEQ_DATASET_REPLICA ${COCO_DATA_DIR}/seq/coco-minival ${DATA_REPLICA}
+		DATASET_REPLICA ${COCO_DATA_DIR}/seq/coco-minival ${DATA_REPLICA} ".seq"
 		COPY_TO_HDFS ${COCO_DATA_DIR}/seq ${HDFS_COCO_DIR}
        	else
                	DATE_PREFIX "INFO" "Dataset only can be VOC0712 or COCO currently! Exiting..."
