@@ -291,23 +291,23 @@ function PREPARE_TF_Records(){ ## convert TF-Records
 	DATE_PREFIX "INFO" "DATAPATH is: ${DATAPATH}"
 	DATE_PREFIX "INFO" "Output dir is: ${TF_SSD_Records}"
 
-	if [[ `ls -A ${TF_SSD_Records}` = "" ]]; then ## if the dir is empty
-		DATE_PREFIX "INFO" "Converting TF-Records ..."
-		if [[ ! -d ${TF_SSD_Records} ]]; then
-			mkdir -p ${TF_SSD_Records}
-		fi
-
-		cd ${TF_SSD_ROOT}
-		python tf_convert_data.py --dataset_name=pascalvoc --dataset_dir=${DATAPATH} --output_name=voc_2007_train --output_dir=${TF_SSD_Records}
-		if [[ $? -eq 0 ]]; then
-			DATE_PREFIX "INFO" "TF-Records converted!"	
-		else
-			DATE_PREFIX "ERROR" "Converting failed!"
-			exit -3
-		fi
+	if [[ -d ${TF_SSD_Records} ]]; then ## if the dir already exists
+		rm -fr ${TF_SSD_Records}/*
 	else
-		DATE_PREFIX "INFO" "TF-Records already exists, will not download again!"
+		mkdir -p ${TF_SSD_Records}
 	fi
+
+	DATE_PREFIX "INFO" "Converting TF-Records ..."
+	cd ${TF_SSD_ROOT}
+	python tf_convert_data.py --dataset_name=pascalvoc --dataset_dir=${DATAPATH} --output_name=voc_2007_test --output_dir=${TF_SSD_Records}
+	if [[ $? -eq 0 ]]; then
+		DATE_PREFIX "INFO" "TF-Records converted!"	
+	else
+		DATE_PREFIX "ERROR" "Converting failed!"
+		exit -3
+	fi
+
+	DATASET_REPLICA ${TF_SSD_Records} ${DATA_REPLICA} ".tfrecord"
 } 
 
 ## Start from here
